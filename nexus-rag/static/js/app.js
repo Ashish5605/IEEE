@@ -336,6 +336,14 @@ function showView(which) {
     const el = $(id);
     if (el) el.hidden = key !== which;
   });
+  // The lattice belongs to the chat surface only. Hiding the container also
+  // stops it doing work: a zero-size container makes every pointer position
+  // fall outside it, so nothing energises while another tab is open.
+  const grid = $("grid-bg");
+  if (grid) {
+    grid.hidden = which !== "chat";
+    if (window.__grid) which === "chat" ? window.__grid._wake() : window.__grid.stop();
+  }
 }
 showView("chat");
 

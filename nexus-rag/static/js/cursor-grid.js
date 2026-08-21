@@ -101,6 +101,9 @@ export class CursorGrid {
     const p = this.p;
     this.w = this.container.offsetWidth;
     this.h = this.container.offsetHeight;
+    // Hidden container: keep the existing lattice rather than rebuilding to 0,
+    // so switching back to the chat tab does not have to re-alloc.
+    if (this.w === 0 || this.h === 0) return;
     this.canvas.width = Math.max(1, Math.round(this.w * this.dpr));
     this.canvas.height = Math.max(1, Math.round(this.h * this.dpr));
     this.canvas.style.width = `${this.w}px`;
@@ -239,6 +242,8 @@ export class CursorGrid {
       if (p.gridOpacity <= 0) ctx.clearRect(0, 0, this.w, this.h);
     }
   }
+
+  stop() { if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; } this.running = false; }
 
   _wake() {
     if (this.running || this.destroyed) return;

@@ -125,6 +125,9 @@
 
   .topbar { height: 52px; border-bottom: 1px solid var(--hairline); position: relative; z-index: 3; }
 
+  .wordmark { color: var(--ink); text-decoration: none; transition: opacity var(--t) var(--ease); }
+  .wordmark:hover { opacity: .7; }
+
   /* ---- Nav ---- */
   .nav-tab { font-size: 13px; color: var(--dim); padding: 3px 1px; border-bottom: 1.5px solid transparent; transition: color var(--t) var(--ease), border-color var(--t) var(--ease); cursor: pointer; }
   .nav-tab:hover { color: var(--ink); }
@@ -273,7 +276,7 @@
 <!-- ============ TOP BAR ============ -->
 <header class="topbar flex items-center justify-between px-5">
   <div class="flex items-center gap-7">
-    <span class="display text-[16px]">Nexora</span>
+    <a href="/" class="display text-[16px] wordmark" title="Back to the home page">Nexora</a>
     <button id="rail-toggle" class="icon-btn" aria-label="Toggle sidebar" title="Toggle sidebar" aria-expanded="true">
       <span class="material-symbols-outlined text-[18px]">left_panel_close</span>
     </button>
