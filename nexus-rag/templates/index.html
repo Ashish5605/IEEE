@@ -218,7 +218,9 @@
 
   /* CursorGrid: lattice that lights up around the pointer. Sits behind every
      pane; pointer-events stay off so it never intercepts clicks. */
-  #grid-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  /* Scoped to the chat column: absolute inside <main>, not fixed to the
+     viewport, so the lattice never runs behind the rail or the info panel. */
+  #grid-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
   #grid-bg canvas { display: block; width: 100%; height: 100%; }
   @media (prefers-reduced-motion: reduce) { #grid-bg { display: none; } }
 
@@ -267,7 +269,6 @@
 </style>
 </head>
 <body>
-<div id="grid-bg" aria-hidden="true"></div>
 
 <!-- ============ TOP BAR ============ -->
 <header class="topbar flex items-center justify-between px-5">
@@ -315,6 +316,7 @@
 
   <!-- ============ CENTER ============ -->
   <main class="pane">
+    <div id="grid-bg" aria-hidden="true"></div>
     <div id="view-chat">
     <div id="chat-thread" class="flex-1 overflow-y-auto px-10 py-10 relative">
       <div class="max-w-2xl mx-auto flex flex-col gap-5 relative" id="chat-inner" style="z-index:1">
