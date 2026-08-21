@@ -2,15 +2,13 @@
 Orchestrates the full RAG pipeline: retrieve -> filter -> prompt -> LLM -> response.
 This is the single entry point the Flask app calls.
 
-Answers are returned in the user's language: either the one explicitly picked in
-the UI, or — when the UI sends "auto" — the language the question was written in.
-The fixed responses (greeting, nothing-found) are pre-translated in src/language.py
-so they don't need an LLM round-trip to be localized.
+Answers are returned in English. The fixed responses (greeting, nothing-found,
+corpus listing) live in src/language.py and are returned without an LLM call.
 """
 import os
 import unicodedata
 from src import retriever, llm, citations, memory, indexer, language, semantic_map, vector_store
-from src.config import BASE_DIR, TOP_K, RELEVANCE_THRESHOLD
+from src.config import BASE_DIR, TOP_K, RELEVANCE_THRESHOLD, SCOPE_FLOOR
 
 _PROMPT_PATH = os.path.join(BASE_DIR, "prompts", "rag_prompt.txt")
 with open(_PROMPT_PATH, "r", encoding="utf-8") as f:
@@ -22,14 +20,12 @@ with open(_PROMPT_PATH, "r", encoding="utf-8") as f:
 _GREETING_PATTERNS = {
     "hi", "hello", "hey", "hii", "hiii", "yo", "good morning", "good afternoon",
     "good evening", "how are you", "whats up", "what's up", "sup", "hola",
-    "வணக்கம்", "நமஸ்காரம்", "नमस्ते", "नमस्कार", "हाय", "हैलो",
 }
 
 
 def _keep_for_match(c: str) -> bool:
-    # Combining marks (category M*) carry vowel signs and the virama in Tamil and
-    # Devanagari but are not alphanumeric, so an isalnum()-only filter would
-    # silently mangle "வணக்கம்" into "வணககம" and never match a greeting.
+    # Combining marks (category M*) are not alphanumeric, so an isalnum()-only
+    # filter would silently drop accents and diacritics from a greeting.
     return c.isalnum() or c.isspace() or unicodedata.category(c).startswith("M")
 
 
@@ -51,8 +47,6 @@ def _is_pure_greeting(question: str) -> bool:
 _REFERRING_TOKENS = {
     "it", "its", "it's", "that", "this", "these", "those", "they", "them",
     "their", "he", "she", "him", "her", "one", "same", "there",
-    "அது", "இது", "அதன்", "இதன்", "அவை",           # Tamil
-    "वह", "यह", "उसे", "इसे", "उसका", "इसका", "वे",  # Hindi
 }
 
 
@@ -77,10 +71,6 @@ _CORPUS_QUESTIONS = (
     "what is in the knowledge base", "whats in the knowledge base",
     "list documents", "list the documents", "what do you have",
     "what topics", "what can i ask",
-    # Tamil
-    "என்ன ஆவணங்கள்", "என்ன தெரியும்", "எந்த ஆவணங்கள்", "என்ன ஆவணங்கள் உள்ளன",
-    # Hindi
-    "कौन से दस्तावेज़", "कौन से दस्तावेज", "क्या दस्तावेज़", "क्या जानते",
     "क्या दस्तावेज", "कौन सी फ़ाइलें",
 )
 
@@ -177,6 +167,24 @@ def answer_question(question: str, session_id: str, requested_language: str = "a
             )
             if contextual["grounded"]:
                 result = contextual
+
+    # Scope guard. A question the corpus barely registers at all is not an
+    # uncovered institutional question — it is a question about something else.
+    # Say so plainly instead of implying the documents merely lack the detail.
+    top_score = result["all_candidates"][0]["score"] if result["all_candidates"] else 0.0
+    if not result["grounded"] and top_score < SCOPE_FLOOR:
+        warning = language.out_of_scope_message(lang)
+        memory.add_turn(session_id, question, warning)
+        return {
+            "answer": warning,
+            "language": lang,
+            "grounded": False,
+            "out_of_scope": True,
+            "sources": [],
+            "evidence": [],
+            "retrieved_ids": [],
+            "query_point": None,
+        }
 
     if not result["grounded"]:
         not_found = language.not_found_message(lang)

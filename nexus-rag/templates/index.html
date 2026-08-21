@@ -8,7 +8,7 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
   /* ---------------------------------------------------------------
      Vector Sky — a retrieval console.
@@ -33,7 +33,7 @@
     --r-sm:      10px;
 
     --font-display: 'Space Grotesk', system-ui, sans-serif;
-    --font-body: 'Inter', 'Noto Sans Tamil', 'Noto Sans Devanagari', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
     /* One motion budget for the whole app. The constellation is the exception. */
@@ -75,9 +75,6 @@
     background: var(--void); color: var(--ink); overflow: hidden;
     font-family: var(--font-body); -webkit-font-smoothing: antialiased;
   }
-  /* Indic faces run small next to Inter; nudge them so a Tamil or Hindi answer
-     keeps the same visual weight as English instead of shifting mid-sentence. */
-  :lang(ta), :lang(hi), .indic { font-size: 1.06em; line-height: 1.75; }
 
 
   /* Film grain over the base, so the background is a surface and not a fill. */
@@ -164,7 +161,6 @@
   select:hover { border-color: rgba(255,255,255,.16); }
   /* Tailwind's forms plugin sets `select { background-color:#fff }`; without this
      the control renders white-on-white. Keep the id selector for specificity. */
-  #language-select { background-color: transparent !important; color: var(--ink) !important; }
   select option { background: var(--panel); color: var(--ink); }
   input[type="range"] { accent-color: var(--signal); width: 100%; }
 
@@ -395,17 +391,7 @@
     <div id="view-settings" class="view-panel" hidden>
       <div class="view-inner">
         <h2 class="view-title">Settings</h2>
-        <p class="view-sub">Answer language and retrieval tuning.</p>
-    <div>
-          <label class="label" for="language-select">Answer language</label>
-          <select id="language-select">
-            <option value="auto">Auto · match question</option>
-            <option value="en">English</option>
-            <option value="ta">தமிழ் Tamil</option>
-            <option value="hi">हिन्दी Hindi</option>
-          </select>
-        </div>
-
+        <p class="view-sub">Retrieval tuning.</p>
         <div class="mt-7">
           <p class="label">Retrieval</p>
           <div class="glass p-4 grid grid-cols-2 gap-6">

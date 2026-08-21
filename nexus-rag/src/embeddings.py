@@ -1,5 +1,5 @@
 """
-Multilingual embedding model wrapper.
+Embedding model wrapper.
 Uses sentence-transformers locally (free, offline after first download).
 Configurable via EMBEDDING_MODEL in .env — swap models without touching
 any other file.
@@ -14,7 +14,7 @@ def _get_model():
     global _model
     if _model is None:
         from sentence_transformers import SentenceTransformer
-        print(f"[embeddings] Loading multilingual model: {EMBEDDING_MODEL} (first run downloads it)")
+        print(f"[embeddings] Loading embedding model: {EMBEDDING_MODEL} (first run downloads it)")
         _model = SentenceTransformer(EMBEDDING_MODEL)
     return _model
 

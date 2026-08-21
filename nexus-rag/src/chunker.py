@@ -6,7 +6,7 @@ import re
 from typing import List, Dict
 from src.config import CHUNK_SIZE, CHUNK_OVERLAP
 
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?।])\s+")  # handles Hindi danda (।) too
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
 def _split_sentences(text: str) -> List[str]:

@@ -30,11 +30,6 @@ def test_irrelevant_question_is_not_grounded():
     assert result["grounded"] is False or all(c["score"] < 0.6 for c in result["all_candidates"])
 
 
-def test_cross_language_question_still_retrieves_english_chunk():
-    # Tamil phrasing of an attendance question should still hit the English source chunk
-    result = retriever.retrieve("குறைந்தபட்ச வருகைத் தேவை என்ன?", scopes=BASE_ONLY, threshold=0.2)
-    assert len(result["all_candidates"]) > 0
-
 
 def test_document_filter_restricts_results():
     docs = vector_store.search("attendance", top_k=5, scopes=BASE_ONLY)

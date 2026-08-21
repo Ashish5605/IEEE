@@ -1,6 +1,6 @@
 # Nexora — Demonstration Script
 
-Roughly 5 minutes. Every query below has been run against the live system.
+Roughly 4 minutes. Every query below has been run against the live system.
 
 ## Setup (before the room is watching)
 
@@ -47,19 +47,7 @@ Point out, in order:
 
 Point at the map: the candidates render as dashed near-misses, not retrievals.
 
-## 4. Multilingual (60s)
-
-**Ask:** `குறைந்தபட்ச வருகைத் தேவை என்ன?`  (Tamil: what is the minimum attendance?)
-
-> "The documents are in English. The question is in Tamil. A multilingual
-> embedding model puts them near each other in vector space, so the correct
-> English passage is retrieved — and the answer comes back in Tamil."
-
-**Then ask:** `न्यूनतम उपस्थिति की आवश्यकता क्या है?`  (Hindi)
-
-Optionally hit the speaker icon for text-to-speech, or the mic to ask by voice.
-
-## 5. Conversation memory (45s)
+## 4. Conversation memory (45s)
 
 **Ask:** `What is the minimum attendance requirement?`
 **Then:** `What happens if I do not meet it?`
@@ -71,18 +59,18 @@ Optionally hit the speaker icon for text-to-speech, or the mic to ask by voice.
 
 **Prove it:** `What is the population of Japan?` → still refused.
 
-## 6. Knowing its own limits (20s)
+## 5. Knowing its own limits (20s)
 
 **Ask:** `What do you know?`
 
 > "A question about the knowledge base, not one the documents answer. It lists
 > the eight indexed policies instead of failing."
 
-## 7. Close (30s)
+## 6. Close (30s)
 
 - Retrieval settings: top-K and threshold are live — raise the threshold and the
   same question gets refused, which shows the guard is real
-- `pytest tests/ -q` → **30 passed**
+- `pytest tests/ -q` → **21 passed**
 
 > "The design goal was that an ungrounded answer should be structurally
 > impossible rather than discouraged by prompt wording."

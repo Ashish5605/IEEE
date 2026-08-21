@@ -27,12 +27,6 @@ prompt is assembled, and if nothing survives the filter the language model is
 never invoked at all. An ungrounded answer is therefore not merely discouraged —
 it is unreachable by construction.
 
-The system answers in **English, Tamil and Hindi**. Because retrieval uses a
-multilingual sentence embedding model, a question asked in Tamil is embedded into
-the same vector space as the English source text, so the correct English passage
-is retrieved and the answer is returned in the language the user asked in — with
-no translation layer and no duplicated corpus.
-
 A **semantic map** makes retrieval inspectable. Every indexed chunk is projected
 to two dimensions by PCA over its stored embedding and drawn as a point; when a
 question is asked, the matched chunks brighten and a constellation is drawn from
@@ -48,7 +42,7 @@ was produced, not only what it said.
 Eight policy PDFs
       │
       ▼
-Document ingestion ──► sentence-aware chunking ──► multilingual embeddings
+Document ingestion ──► sentence-aware chunking ──► sentence embeddings
 (pypdf)                (250 words / 60 overlap)   (paraphrase-multilingual-
       │                                             mpnet-base-v2, local)
       ▼
@@ -83,9 +77,9 @@ ChromaDB persistent vector store  (cosine, metadata: source · page · scope)
 | Layer | Choice | Why |
 |---|---|---|
 | Web framework | **Flask 3.0.3** | Small enough to read end to end; no hidden machinery to explain |
-| Embeddings | **sentence-transformers 3.0.1** — `paraphrase-multilingual-mpnet-base-v2` | Genuinely multilingual, so Tamil and Hindi questions retrieve English passages. Runs locally: no per-query cost, no data leaving the machine |
+| Embeddings | **sentence-transformers 3.0.1** — `paraphrase-multilingual-mpnet-base-v2` | Strong general-purpose sentence encoder. Runs locally: no per-query cost, no data leaving the machine |
 | Vector store | **ChromaDB ≥ 0.5.5** | Persistent, cosine similarity, metadata filtering for document-scoped search |
-| LLM | **Groq** — `openai/gpt-oss-120b` | Free tier, ~0.9 s responses. Chosen by testing candidates on a Tamil prompt: `qwen/qwen3.6-27b` leaked raw `<think>` reasoning and produced no Tamil |
+| LLM | **Groq** — `openai/gpt-oss-120b` | Free tier, ~0.9 s responses. Chosen by testing candidates against the corpus: `qwen/qwen3.6-27b` leaked raw `<think>` reasoning into its answers |
 | LLM abstraction | Custom provider layer | `LLM_PROVIDER` swaps between Groq, Gemini, OpenAI, xAI (Grok) and Ollama without touching any other file |
 | Document parsing | **pypdf 4.3.1**, **python-docx 1.1.2** | PDF page numbers are preserved so citations can name a page |
 | Dimensionality reduction | **scikit-learn** PCA | Deterministic (the map does not jump between reloads) and able to project a new query vector using the corpus-fitted transform — which t-SNE and UMAP cannot do natively |
@@ -102,7 +96,6 @@ by Flask, so the project runs with `python app.py` and nothing else.
 | Markdown rendering | marked 12.0.2 |
 | Semantic map | Canvas 2D, written for this project |
 | Motion / 3D | three.js 0.180, GSAP 3.13, Lenis 1.1.18 (ES modules from CDN) |
-| Typography | Space Grotesk (display), Inter (body), JetBrains Mono (data), Noto Sans Tamil / Devanagari |
 
 ### Configuration
 
@@ -149,7 +142,7 @@ All orchestration is ~120 lines of explicit Python in `src/rag_pipeline.py`.
 
 3. **Context-aware follow-ups, carefully bounded.** *"What happens if I don't
    meet it?"* embeds to nothing (0.160) and would be refused. When the bare query
-   fails **and** contains a referring token (`it`, `that`, `அது`, `वह`), retrieval
+   fails **and** contains a referring token (`it`, `that`, `those`), retrieval
    retries with the previous question prepended, raising it to 0.719. The gate is
    essential: prepending unconditionally caused an unrelated question to retrieve
    the previous topic's chunks — an ungrounded answer created by the fix itself.
@@ -158,7 +151,14 @@ All orchestration is ~120 lines of explicit Python in `src/rag_pipeline.py`.
    know?"* scores 0.128 against every chunk. Rather than a dead end, the system
    detects such questions and lists the indexed documents, in the user's language.
 
-5. **Citations cannot be fabricated.** Source names, pages and scores come from
+5. **Two refusals, not one.** A question scoring below the scope floor (0.22)
+   is not an uncovered institutional question — it is about something else, and
+   the user is told exactly that. Between the floor and the threshold, the
+   answer is "the documents don't cover this". Off-topic questions measure
+   0.09–0.17 against the corpus; in-domain ones start at 0.28. Instructions
+   embedded in a question are refused by the same gate, before the model runs.
+
+6. **Citations cannot be fabricated.** Source names, pages and scores come from
    vector-store metadata. The model is instructed not to emit citations at all.
 
 ---
@@ -168,13 +168,11 @@ All orchestration is ~120 lines of explicit Python in `src/rag_pipeline.py`.
 | Query | Language | Grounded | Top score |
 |---|---|---|---|
 | Minimum attendance requirement | English | ✓ | 0.734 |
-| குறைந்தபட்ச வருகைத் தேவை என்ன? | Tamil | ✓ | — answered in Tamil |
-| न्यूनतम उपस्थिति की आवश्यकता क्या है? | Hindi | ✓ | — answered in Hindi |
 | "What happens if I don't meet it?" | English follow-up | ✓ | 0.719 (inherited context) |
 | Population of Japan | English | ✗ refused | 0.224 |
 
-- **30 automated tests**, covering retrieval, scope isolation, language
-  resolution, the hallucination guard, follow-up inheritance and corpus questions
+- **25 automated tests**, covering retrieval, scope isolation, the hallucination
+  guard, follow-up inheritance and corpus questions
 - **WCAG AA** contrast verified in both themes (dark 7.46–21.00, light 5.90–19.03)
 - ~1,650 lines of Python, ~2,100 lines of JavaScript, no build step
 
@@ -184,8 +182,6 @@ All orchestration is ~120 lines of explicit Python in `src/rag_pipeline.py`.
 
 - The corpus is small (8 single-page documents, 10 chunks); retrieval quality
   claims would need re-testing at scale
-- Cross-language retrieval depends on the embedding model — very short or
   ambiguous queries retrieve less reliably
-- Speech recognition accuracy for Tamil and Hindi depends on the browser engine
 - Answer quality is bounded by the connected LLM and by the coverage of the
   source documents

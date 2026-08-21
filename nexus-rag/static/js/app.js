@@ -24,7 +24,6 @@ const thresholdSlider = $("threshold-slider");
 const thresholdVal = $("threshold-val");
 const sourceSelector = $("source-selector");
 const historyList = $("history-list");
-const languageSelect = $("language-select");
 const scopeAllBtn = $("scope-all");
 const scopeFilesBtn = $("scope-files");
 const plotSvg = $("semantic-plot");
@@ -35,8 +34,6 @@ const infoToggle = $("info-toggle");
 const infoPanel = $("info-panel");
 const appShell = $("app-shell");
 
-// "auto" asks the backend to answer in the language the question was written in.
-let currentLanguage = "auto";
 let lastAnswerLanguage = "en";
 let currentSourceFilter = null;
 let scopeMode = "all";          // "all" | "files"
@@ -44,7 +41,7 @@ let lastQuestion = null;        // for Regen
 let corpusPoints = [];
 let activeSpeechBtn = null;
 
-const VOICE_LANG_MAP = { en: "en-IN", ta: "ta-IN", hi: "hi-IN" };
+const VOICE_LANG_MAP = { en: "en-IN" };
 
 function setStatus(text, loading) {
   const dot = $("status-dot"), label = $("status-text");
@@ -206,7 +203,7 @@ function addAssistantMessage(data) {
 
   wrap.innerHTML = `
     <div class="msg-bot">
-      <div class="prose-answer" lang="${data.language || 'en'}">${body}</div>
+      <div class="prose-answer">${body}</div>
       ${sources ? `<div class="flex flex-wrap gap-1.5 mt-3 pt-3" style="border-top:1px solid var(--line)">${sources}</div>` : ""}
       <div class="flex items-center gap-0.5 mt-2">
         <button class="copy-btn icon-btn" aria-label="Copy answer" title="Copy"><span class="material-symbols-outlined text-[15px]">content_copy</span></button>
@@ -252,7 +249,6 @@ async function ask(question) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question,
-        language: currentLanguage,
         source_filter: currentSourceFilter,
         top_k: topkSlider.value,
         threshold: thresholdSlider.value,
@@ -293,7 +289,6 @@ settingsToggle.addEventListener("click", () => {
 });
 topkSlider.addEventListener("input", () => (topkVal.textContent = topkSlider.value));
 thresholdSlider.addEventListener("input", () => (thresholdVal.textContent = thresholdSlider.value));
-languageSelect.addEventListener("change", () => { currentLanguage = languageSelect.value; });
 
 infoToggle.addEventListener("click", () => {
   appShell.classList.toggle("info-hidden");
@@ -445,7 +440,7 @@ micBtn.addEventListener("click", () => {
   recognition = getSpeechRecognition();
   if (!recognition) { showBanner("warning", "Voice input needs Chrome. Type your question instead."); return; }
 
-  recognition.lang = VOICE_LANG_MAP[currentLanguage] || VOICE_LANG_MAP[lastAnswerLanguage] || "en-IN";
+  recognition.lang = "en-IN";
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
   recognition.onstart = () => { listening = true; micBtn.classList.add("mic-listening"); micStatus.textContent = "Listening…"; };

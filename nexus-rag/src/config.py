@@ -42,7 +42,9 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "")
 
 # --- Embeddings ---
-# Multilingual model — required for English/Tamil/Hindi cross-language retrieval.
+# Sentence embedding model, run locally. The checkpoint name carries
+# "multilingual" but the assistant answers in English only; it is used here
+# simply as a strong general-purpose sentence encoder.
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "paraphrase-multilingual-mpnet-base-v2")
 
 # --- Chunking ---
@@ -53,14 +55,18 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "60"))  # words repeated between 
 TOP_K = int(os.getenv("TOP_K", "5"))
 RELEVANCE_THRESHOLD = float(os.getenv("RELEVANCE_THRESHOLD", "0.35"))  # cosine similarity floor
 
+# Below this, a question isn't merely uncovered by the documents — it is about
+# something else entirely, and the user is told so explicitly rather than given
+# a bare "not found". Measured against the corpus: clearly off-topic questions
+# score 0.09-0.17, while in-domain questions start around 0.28.
+SCOPE_FLOOR = float(os.getenv("SCOPE_FLOOR", "0.22"))
+
 # --- Conversation memory ---
 MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "4"))  # last N Q&A pairs kept in context
 
-# --- Languages ---
+# --- Language ---
 SUPPORTED_LANGUAGES = {
     "en": "English",
-    "ta": "Tamil",
-    "hi": "Hindi",
 }
 
 # --- Collection name for vector store ---

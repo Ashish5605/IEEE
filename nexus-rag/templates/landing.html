@@ -173,8 +173,8 @@
         <p>Every answer carries its source document and page number, with the retrieved passage and its relevance score shown alongside.</p>
       </div>
       <div class="cell">
-        <h3>English, Tamil, Hindi</h3>
-        <p>Multilingual embeddings mean a Tamil or Hindi question retrieves the right English passage, and the answer comes back in the language you asked in.</p>
+        <h3>Inspectable retrieval</h3>
+        <p>A semantic map shows which chunks answered your question and how strongly each one matched, so an answer can be checked rather than trusted.</p>
       </div>
     </section>
 
@@ -212,7 +212,12 @@
   // Smooth scroll. Disabled under reduced-motion, where hijacking the scroll
   // would be exactly the wrong thing to do.
   if (!reduce) {
-    const lenis = new Lenis({ duration: 1.1, smoothWheel: true });
+    const lenis = new Lenis({
+      duration: 1.8,                                   // longer glide to rest
+      easing: (t) => 1 - Math.pow(1 - t, 4),           // smooth deceleration
+      smoothWheel: true,
+      wheelMultiplier: 0.85,                           // less distance per notch
+    });
     window.__lenis = lenis;
     const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
     requestAnimationFrame(raf);
@@ -239,9 +244,10 @@
 
   if (!reduce) {
     window.__cursor = new TargetCursor({
-      spinDuration: 2,
+      spinDuration: 6,      // a slow rotation, not a spinner
       hideDefaultCursor: true,
       parallaxOn: true,
+      hoverDuration: 0.45,  // eases onto a target instead of snapping
     });
   }
 
@@ -252,7 +258,7 @@
         beamHeight: 15,
         beamNumber: 12,
         lightColor: '#ffffff',
-        speed: 2,
+        speed: 0.55,           // slow drift; 2 read as restless behind the type
         noiseIntensity: 1.75,
         scale: 0.2,
         rotation: 0,
@@ -274,7 +280,7 @@
     displayOverlayContent: true,
     overlayContent: `<div class="card-face glass">
         <div><h3>Open the console</h3>
-        <p>Ask in English, Tamil or Hindi. Every answer arrives with the passage and page it came from.</p></div>
+        <p>Ask a question in plain English. Every answer arrives with the passage and page it came from.</p></div>
         <span class="go">/app →</span>
       </div>`,
   });
@@ -293,22 +299,22 @@
   });
 
   new SplitText(document.getElementById('hero-line'), {
-    delay: 28,
-    duration: 0.85,
-    ease: 'power3.out',
+    delay: 55,            // wider gap between characters
+    duration: 1.6,        // each character settles slowly
+    ease: 'expo.out',     // long decelerating tail rather than a quick stop
     splitType: 'chars',
-    from: { opacity: 0, y: 40 },
+    from: { opacity: 0, y: 26 },   // shorter travel reads calmer at this duration
     to: { opacity: 1, y: 0 },
     threshold: 0.1,
     rootMargin: '-40px',
     textAlign: 'center',
   });
   new SplitText(document.getElementById('hero-lede'), {
-    delay: 14,
-    duration: 0.7,
-    ease: 'power2.out',
+    delay: 26,
+    duration: 1.2,
+    ease: 'expo.out',
     splitType: 'words',
-    from: { opacity: 0, y: 14 },
+    from: { opacity: 0, y: 10 },
     to: { opacity: 1, y: 0 },
     threshold: 0.1,
     rootMargin: '-20px',
