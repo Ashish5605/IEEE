@@ -1,11 +1,18 @@
+# Core — required
 flask==3.0.3
 python-dotenv==1.0.1
 chromadb>=0.5.5
 sentence-transformers==3.0.1
 pypdf==4.3.1
 python-docx==1.1.2
-google-generativeai==0.7.2
-groq>=0.13.0
-openai>=1.50.0
 requests==2.32.3
 pytest==8.3.2
+
+# LLM provider. Only the one you actually use needs installing — src/llm.py
+# imports each provider lazily, so the others can be absent.
+groq>=0.13.0                 # LLM_PROVIDER=groq   (default)
+openai>=1.50.0               # LLM_PROVIDER=openai or xai
+
+# Optional providers — uncomment if you switch to them:
+# google-generativeai>=0.8.0 # LLM_PROVIDER=gemini
+#                            # LLM_PROVIDER=ollama needs no SDK (uses requests)

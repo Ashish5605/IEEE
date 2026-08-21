@@ -176,6 +176,7 @@ nexus-rag/
 
 ## Documentation
 
+- [`SETUP.md`](SETUP.md) — step-by-step setup on a new machine
 - [`ABSTRACT.md`](ABSTRACT.md) — architecture, tool choices and design rationale
 - [`DEMO.md`](DEMO.md) — a scripted walkthrough with exact queries
 
