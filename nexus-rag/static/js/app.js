@@ -98,7 +98,13 @@ function sourceRow(name) {
   const row = document.createElement("label");
   row.className = "src-row";
   row.innerHTML = `<input type="radio" name="source" class="w-3 h-3"/><span class="truncate mono" title="${escapeAttr(name)}">${escapeHtml(name)}</span>`;
-  row.querySelector("input").addEventListener("change", () => { currentSourceFilter = name; });
+  row.querySelector("input").addEventListener("change", () => {
+    // Choosing a document implies scoping to it.
+    currentSourceFilter = name;
+    scopeMode = "files";
+    applyScopeMode();
+    row.querySelector("input").checked = true;
+  });
   return row;
 }
 
@@ -106,8 +112,14 @@ function applyScopeMode() {
   const filesMode = scopeMode === "files";
   scopeAllBtn.classList.toggle("active", !filesMode);
   scopeFilesBtn.classList.toggle("active", filesMode);
-  sourceSelector.style.display = filesMode ? "flex" : "none";
-  if (!filesMode) currentSourceFilter = null;
+  // The document list always shows — it is the substance of the Knowledge tab.
+  // "All files" simply means no single-source filter is applied.
+  sourceSelector.style.display = "flex";
+  sourceSelector.classList.toggle("scope-inactive", !filesMode);
+  if (!filesMode) {
+    currentSourceFilter = null;
+    sourceSelector.querySelectorAll("input[type=radio]").forEach((r) => { r.checked = false; });
+  }
 }
 scopeAllBtn.addEventListener("click", () => { scopeMode = "all"; applyScopeMode(); });
 scopeFilesBtn.addEventListener("click", () => { scopeMode = "files"; applyScopeMode(); });
@@ -304,9 +316,6 @@ if (railToggle) {
   railToggle.addEventListener("click", () => { appShell.classList.toggle("rail-hidden"); paintRail(); });
 }
 
-// Same action as the rail's + button; reachable when the rail is collapsed.
-const newChatFab = $("new-chat-fab");
-if (newChatFab) newChatFab.addEventListener("click", () => newChatBtn.click());
 
 // ---------- Nav tabs ----------
 document.querySelectorAll(".nav-tab").forEach((tab) => {

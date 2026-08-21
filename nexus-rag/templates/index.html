@@ -108,7 +108,7 @@
 
   .mono { font-family: var(--font-mono); font-size: 11px; letter-spacing: -0.01em; }
   .display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
-  .label { font-size: 11px; color: var(--dim); margin-bottom: 10px; font-weight: 500; }
+  .label { font-size: 11px; color: var(--ink); margin-bottom: 10px; font-weight: 600; letter-spacing: .01em; }
 
   /* ---- Shell ---- */
   .app-shell { display: grid; grid-template-columns: 268px minmax(0,1fr) 372px; height: calc(100vh - 52px); position: relative; z-index: 2; }
@@ -185,7 +185,11 @@
   .conv-row { padding: 9px 2px; border-bottom: 1px solid var(--hairline); color: var(--dim); font-size: 12.5px; cursor: pointer; transition: color var(--t) var(--ease); display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
   .conv-row:hover { color: var(--ink); }
   .conv-row:last-child { border-bottom: none; }
-  .src-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; font-size: 12px; color: var(--dim); cursor: pointer; transition: color var(--t) var(--ease); }
+  .src-row { display: flex; align-items: center; gap: 8px; padding: 7px 2px; font-size: 12px; color: var(--dim); cursor: pointer; transition: color var(--t) var(--ease), opacity var(--t) var(--ease); border-bottom: 1px solid var(--hairline); }
+  .src-row:last-child { border-bottom: none; }
+  /* In "All files" mode every document is in scope, so the radios are dimmed
+     rather than hidden — the list is the point of this page. */
+  #source-selector.scope-inactive .src-row input { opacity: .35; }
   .src-row:hover { color: var(--ink); }
 
   .dropzone { border: 1px dashed var(--hairline); border-radius: var(--r); transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); cursor: pointer; }
@@ -202,28 +206,21 @@
   .msg-in { animation: msg-in 200ms var(--ease) both; }
   @keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-  /* Floating new-chat pill. Stays reachable when the rail is collapsed. */
-  .fab {
-    position: absolute; right: 26px; bottom: 122px; z-index: 20;
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 16px; border-radius: 999px;
-    background: var(--panel); border: 1px solid var(--hairline); color: var(--ink);
-    font-size: 12.5px; font-weight: 500;
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 6px 24px rgba(0,0,0,.35);
-    transition: transform 140ms var(--ease), border-color 140ms var(--ease), background-color 140ms var(--ease);
-  }
-  .fab:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
-  :root[data-theme="light"] .fab { box-shadow: 0 6px 24px rgba(0,0,0,.10); }
-  :root[data-theme="light"] .fab:hover { border-color: rgba(0,0,0,.25); }
-  @media (max-width: 640px) { .fab { right: 16px; bottom: 108px; } }
-
   /* Tabbed views in the centre column. */
   #view-chat { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  /* The hidden attribute is only display:none at UA-stylesheet specificity, so
+     any explicit display here would beat it. Make it win. */
+  [hidden] { display: none !important; }
   .view-panel { flex: 1; overflow-y: auto; padding: 40px 40px 60px; }
   .view-inner { max-width: 640px; margin: 0 auto; }
   .view-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin: 0 0 6px; }
   .view-sub { font-size: 13px; color: var(--dim); margin: 0 0 28px; }
+
+  /* CursorGrid: lattice that lights up around the pointer. Sits behind every
+     pane; pointer-events stay off so it never intercepts clicks. */
+  #grid-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  #grid-bg canvas { display: block; width: 100%; height: 100%; }
+  @media (prefers-reduced-motion: reduce) { #grid-bg { display: none; } }
 
   /* Hover readout for the semantic map. */
   .sky-tip {
@@ -270,6 +267,7 @@
 </style>
 </head>
 <body>
+<div id="grid-bg" aria-hidden="true"></div>
 
 <!-- ============ TOP BAR ============ -->
 <header class="topbar flex items-center justify-between px-5">
@@ -329,11 +327,6 @@
       </div>
     </div>
 
-    <button id="new-chat-fab" class="fab" aria-label="Start a new conversation">
-      <span class="material-symbols-outlined text-[17px]">add</span>
-      <span>New chat</span>
-    </button>
-
     <div class="px-10 pb-7 relative" style="z-index:2">
       <div class="max-w-2xl mx-auto">
         <div id="banner-slot"></div>
@@ -387,7 +380,8 @@
             <button id="scope-all" class="seg active">All files</button>
             <button id="scope-files" class="seg">Select</button>
           </div>
-          <div id="source-selector" class="mt-2 max-h-40 overflow-y-auto"></div>
+          <p class="label mt-7">Indexed documents</p>
+        <div id="source-selector" class="flex flex-col"></div>
         </div>
 
       </div>
@@ -458,11 +452,39 @@
 <script src="/static/js/app.js"></script>
 <script type="module">
   import { VectorSky } from '/static/js/vector-sky.js';
+  import { CursorGrid } from '/static/js/cursor-grid.js';
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const opts = { star: css('--dim'), retrieval: css('--retrieval'), signal: css('--signal') };
   // Single sky: the semantic map in the information panel.
   window.__mini = new VectorSky(document.getElementById('mini-sky'), opts);
   window.__sky = window.__mini;
+  // Monochrome: the lattice takes the ink colour of the active theme rather
+  // than the component's default magenta.
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const gridColor = () => (document.documentElement.getAttribute('data-theme') === 'light' ? '#111111' : '#FFFFFF');
+    try {
+      window.__grid = new CursorGrid(document.getElementById('grid-bg'), {
+        cellSize: 70,
+        color: gridColor(),
+        radius: 140,
+        falloff: 'smooth',
+        holdTime: 400,
+        fadeDuration: 800,
+        lineWidth: 1.2,
+        maxOpacity: 1,
+        fillOpacity: 0,
+        gridOpacity: 0,
+        cellRadius: 0,
+        clickPulse: true,
+        pulseSpeed: 600,
+      });
+      window.addEventListener('themechange', () => window.__grid.setOptions({ color: gridColor() }));
+    } catch (e) {
+      console.warn('cursor grid unavailable:', e);
+      document.getElementById('grid-bg').style.display = 'none';
+    }
+  }
+
   window.dispatchEvent(new Event('sky-ready'));
 </script>
 </body>
