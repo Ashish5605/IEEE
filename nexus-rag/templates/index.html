@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nexora — Voice Knowledge Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "obsidian-base": "#0B0E14",
+          "obsidian-elevated": "#12151C",
+          "deep-space": "#050608",
+          "surface": "#10131a",
+          "surface-container": "#1d2026",
+          "surface-container-low": "#191c22",
+          "surface-container-high": "#272a31",
+          "surface-container-highest": "#32353c",
+          "surface-container-lowest": "#0b0e14",
+          "on-surface": "#e1e2eb",
+          "on-surface-variant": "#c8c4d7",
+          "primary": "#c6bfff",
+          "primary-container": "#6c5ce7",
+          "on-primary-container": "#faf6ff",
+          "secondary": "#47f5db",
+          "cyber-mint": "#47F5DB",
+          "electric-indigo": "#818CF8",
+          "glass-stroke": "rgba(255, 255, 255, 0.08)",
+          "glow-primary": "rgba(108, 92, 231, 0.4)",
+          "danger": "#ffb4ab",
+          "warning": "#facc15",
+        },
+        fontFamily: {
+          sans: ["Inter", "sans-serif"],
+          mono: ["JetBrains Mono", "monospace"],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { background-color: #050608; color: #e1e2eb; }
+  .glass-panel { background: rgba(18, 21, 28, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+
+  /* ---------- Reduced motion guard ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  /* ---------- Ambient background atmosphere ---------- */
+  .ambient-glow { position: fixed; border-radius: 9999px; filter: blur(90px); pointer-events: none; z-index: 0; opacity: 0.16; }
+  .ambient-glow--violet { width: 620px; height: 620px; background: #6C5CE7; top: -180px; right: -140px; animation: drift-a 22s ease-in-out infinite; }
+  .ambient-glow--mint { width: 520px; height: 520px; background: #47F5DB; bottom: -160px; left: 240px; animation: drift-b 26s ease-in-out infinite; }
+  @keyframes drift-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-40px, 30px) scale(1.08); }
+  }
+  @keyframes drift-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -30px) scale(1.05); }
+  }
+
+  /* ---------- Signature element: the Nexora orb ---------- */
+  .nexora-orb { position: relative; display: flex; align-items: center; justify-content: center; }
+  .nexora-orb::before, .nexora-orb::after {
+    content: ""; position: absolute; inset: 0; border-radius: 9999px;
+    background: conic-gradient(from 0deg, #6C5CE7, #47F5DB, #818CF8, #6C5CE7);
+  }
+  .nexora-orb::before { animation: orb-spin 6s linear infinite; opacity: 0.9; }
+  .nexora-orb::after { animation: orb-spin 9s linear infinite reverse; opacity: 0.5; filter: blur(2px); }
+  .nexora-orb .orb-core {
+    position: relative; z-index: 1; border-radius: 9999px; background: #0B0E14;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nexora-orb--lg { width: 72px; height: 72px; }
+  .nexora-orb--lg .orb-core { width: 60px; height: 60px; }
+  .nexora-orb--sm { width: 28px; height: 28px; }
+  .nexora-orb--sm .orb-core { width: 22px; height: 22px; }
+  .nexora-orb--pulse { animation: orb-pulse 2.4s ease-in-out infinite; }
+  @keyframes orb-spin { to { transform: rotate(360deg); } }
+  @keyframes orb-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.35), 0 0 24px 4px rgba(71, 245, 219, 0.15); }
+    50% { box-shadow: 0 0 0 10px rgba(108, 92, 231, 0), 0 0 32px 8px rgba(71, 245, 219, 0.28); }
+  }
+
+  /* ---------- Page load sequence ---------- */
+  .app-sidebar { animation: sidebar-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes sidebar-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+  .sidebar-stagger { opacity: 0; animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .sidebar-stagger:nth-of-type(1) { animation-delay: 0.05s; }
+  .sidebar-stagger:nth-of-type(2) { animation-delay: 0.12s; }
+  .sidebar-stagger:nth-of-type(3) { animation-delay: 0.19s; }
+  .sidebar-stagger:nth-of-type(4) { animation-delay: 0.26s; }
+  .sidebar-stagger:nth-of-type(5) { animation-delay: 0.33s; }
+  @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .hero-in { animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; }
+
+  /* ---------- Message entrance ---------- */
+  .msg-in { animation: msg-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes msg-in { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* ---------- Thinking indicator ---------- */
+  .thinking-dots { display: inline-flex; gap: 4px; align-items: center; }
+  .thinking-dots span { width: 6px; height: 6px; border-radius: 9999px; background: #47F5DB; animation: dot-fade 1.2s ease-in-out infinite; }
+  .thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes dot-fade { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); } 40% { opacity: 1; transform: scale(1); } }
+
+  /* ---------- Collapsible sections (settings / history) ---------- */
+  .collapse-body { overflow: hidden; max-height: 0; opacity: 0; transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease; }
+  .collapse-body.open { opacity: 1; }
+  .evidence-body { overflow: hidden; max-height: 0; transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+  .evidence-body.open { max-height: 2000px; }
+
+  /* ---------- Interactive polish ---------- */
+  button { transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+  button:active { transform: scale(0.96); }
+  #send-btn.send-armed { background: #6C5CE7; border-color: transparent; color: white; box-shadow: 0 0 18px rgba(108, 92, 231, 0.5); }
+  #send-btn.send-armed:hover { opacity: 0.9; transform: scale(1.05); }
+  #mic-btn:hover { transform: scale(1.06); }
+
+  .input-wrap { transition: box-shadow 0.3s ease, border-color 0.3s ease; }
+  .input-wrap:focus-within { box-shadow: 0 0 0 1px rgba(108, 92, 231, 0.5), 0 20px 50px rgba(108, 92, 231, 0.15); }
+
+  .source-chip { transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease; }
+  .source-chip:hover { transform: translateY(-1px); border-color: rgba(71, 245, 219, 0.4); background: rgba(71, 245, 219, 0.06); }
+
+  .kb-row { transition: background-color 0.2s ease, color 0.2s ease; border-radius: 8px; }
+  .kb-row:hover { background: rgba(255,255,255,0.04); }
+
+  #index-status-badge { transition: all 0.3s ease; }
+  .status-pulse { animation: status-pulse 2s ease-in-out infinite; }
+  @keyframes status-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 180, 171, 0.35); } 50% { box-shadow: 0 0 0 5px rgba(255, 180, 171, 0); } }
+
+  .dropzone-active { outline: 2px dashed #6C5CE7; outline-offset: -2px; background: rgba(108,92,231,0.08); transform: scale(1.01); }
+  #upload-dropzone { transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease; }
+
+  .banner-in { animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  .chevron-rotate { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .chevron-rotate.open { transform: rotate(180deg); }
+
+  .mic-listening { animation: pulse-ring 1.4s ease-out infinite; }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.6); }
+    70% { box-shadow: 0 0 0 16px rgba(108, 92, 231, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0); }
+  }
+
+  /* Listen button "speaking" state: pulsing ring + animated equalizer bars */
+  .listen-speaking { color: #47F5DB !important; background: rgba(71, 245, 219, 0.1); animation: pulse-ring-mint 1.4s ease-out infinite; }
+  @keyframes pulse-ring-mint {
+    0% { box-shadow: 0 0 0 0 rgba(71, 245, 219, 0.5); }
+    70% { box-shadow: 0 0 0 12px rgba(71, 245, 219, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(71, 245, 219, 0); }
+  }
+  .eq-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; width: 18px; }
+  .eq-bars span { width: 3px; background: #47F5DB; border-radius: 2px; animation: eq-bounce 0.9s ease-in-out infinite; }
+  .eq-bars span:nth-child(1) { animation-delay: -0.6s; }
+  .eq-bars span:nth-child(2) { animation-delay: -0.3s; }
+  .eq-bars span:nth-child(3) { animation-delay: 0s; }
+  @keyframes eq-bounce {
+    0%, 100% { height: 4px; }
+    50% { height: 16px; }
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #47F5DB44; border-radius: 4px; }
+  .relevance-high { color: #47F5DB; }
+  .relevance-medium { color: #facc15; }
+  .relevance-low { color: #c8c4d7; }
+
+  /* Markdown answer formatting */
+  .answer-markdown h3 { font-size: 1.05rem; font-weight: 700; color: #e1e2eb; margin: 0.6rem 0 0.4rem; }
+  .answer-markdown ul, .answer-markdown ol { margin: 0.3rem 0 0.6rem 1.2rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  .answer-markdown ul { list-style: disc; }
+  .answer-markdown ol { list-style: decimal; }
+  .answer-markdown p { margin: 0.3rem 0; }
+  .answer-markdown strong { color: #ffffff; font-weight: 600; }
+  .answer-markdown code { background: rgba(255,255,255,0.08); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+</style>
+</head>
+<body class="font-sans h-screen overflow-hidden flex relative bg-obsidian-base">
+
+<div class="ambient-glow ambient-glow--violet"></div>
+<div class="ambient-glow ambient-glow--mint"></div>
+
+<!-- Sidebar -->
+<aside class="app-sidebar fixed left-0 top-0 h-full w-[280px] bg-obsidian-elevated/70 backdrop-blur-xl border-r border-glass-stroke flex flex-col py-6 z-50 overflow-y-auto">
+  <div class="sidebar-stagger px-6 mb-8 flex items-center gap-3">
+    <div class="nexora-orb nexora-orb--sm">
+      <div class="orb-core">
+        <span class="material-symbols-outlined text-white" style="font-size: 14px;">hub</span>
+      </div>
+    </div>
+    <div>
+      <h1 class="text-lg font-bold text-on-surface tracking-tight">Nexora</h1>
+      <p class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Voice Knowledge AI</p>
+    </div>
+  </div>
+
+  <!-- Knowledge base status -->
+  <div class="sidebar-stagger px-6 mb-6">
+    <p class="text-[11px] font-mono text-on-surface-variant uppercase tracking-wider mb-3">Knowledge base</p>
+    <div class="glass-panel rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-on-surface-variant">Documents</span>
+        <span class="text-sm font-semibold text-on-surface" id="doc-count">—</span>
+      </div>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-on-surface-variant">Status</span>
+        <span id="index-status-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant">checking…</span>
+      </div>
+
+      <label id="upload-dropzone" for="file-input" class="flex flex-col items-center justify-center gap-1.5 border border-dashed border-glass-stroke rounded-lg py-4 mb-3 text-center cursor-pointer hover:border-primary-container/60 transition-colors">
+        <span class="material-symbols-outlined text-on-surface-variant text-xl">upload_file</span>
+        <span class="text-xs text-on-surface-variant">Drop files or <span class="text-primary underline">browse</span></span>
+        <span class="text-[10px] text-on-surface-variant/60">PDF, DOCX, TXT</span>
+      </label>
+      <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md" multiple />
+
+      <button id="rebuild-btn" class="w-full text-xs flex items-center justify-center gap-2 border border-glass-stroke rounded-lg py-2 text-on-surface-variant hover:bg-glass-stroke transition-colors">
+        <span class="material-symbols-outlined text-sm">refresh</span>
+        Rebuild knowledge base
+      </button>
+    </div>
+  </div>
+
+  <!-- Knowledge source -->
+  <div class="sidebar-stagger px-6 mb-6">
+    <p class="text-[11px] font-mono text-on-surface-variant uppercase tracking-wider mb-3">Knowledge source</p>
+    <div id="source-selector" class="flex flex-col gap-1"></div>
+  </div>
+
+  <!-- Advanced settings -->
+  <div class="sidebar-stagger px-6 mb-6">
+    <button id="settings-toggle" class="flex items-center justify-between w-full text-[11px] font-mono text-on-surface-variant uppercase tracking-wider mb-3">
+      <span>Settings</span>
+      <span class="material-symbols-outlined text-sm chevron-rotate" id="settings-chevron">expand_more</span>
+    </button>
+    <div id="settings-body" class="collapse-body flex flex-col gap-4">
+      <div>
+        <div class="flex justify-between text-xs text-on-surface-variant mb-1">
+          <span>Retrieval top-K</span><span id="topk-val">5</span>
+        </div>
+        <input type="range" id="topk-slider" min="1" max="10" value="5" class="w-full accent-primary-container" />
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-on-surface-variant mb-1">
+          <span>Relevance threshold</span><span id="threshold-val">0.35</span>
+        </div>
+        <input type="range" id="threshold-slider" min="0" max="1" step="0.05" value="0.35" class="w-full accent-primary-container" />
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="sidebar-stagger px-6 mb-6">
+    <button id="history-toggle" class="flex items-center justify-between w-full text-[11px] font-mono text-on-surface-variant uppercase tracking-wider mb-3">
+      <span>History</span>
+      <span class="material-symbols-outlined text-sm chevron-rotate" id="history-chevron">expand_more</span>
+    </button>
+    <div id="history-list" class="collapse-body flex flex-col gap-1 max-h-48 overflow-y-auto"></div>
+  </div>
+
+  <div class="mt-auto px-6">
+    <button id="new-chat-btn" class="w-full flex items-center justify-center gap-2 text-xs text-on-surface-variant hover:text-primary transition-colors py-2 mb-1">
+      <span class="material-symbols-outlined text-sm">add</span>
+      New knowledge base session
+    </button>
+    <button id="clear-chat-btn" class="w-full flex items-center justify-center gap-2 text-xs text-on-surface-variant hover:text-danger transition-colors py-2">
+      <span class="material-symbols-outlined text-sm">delete</span>
+      Clear chat
+    </button>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="ml-[280px] flex-1 flex flex-col h-screen relative z-[1]">
+  <div id="chat-thread" class="flex-1 overflow-y-auto p-10 pb-[160px]">
+    <div class="max-w-4xl mx-auto flex flex-col gap-6" id="chat-inner">
+      <div id="empty-state" class="hero-in flex flex-col items-center justify-center text-center py-24">
+        <div class="nexora-orb nexora-orb--lg nexora-orb--pulse mb-6">
+          <div class="orb-core">
+            <span class="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
+          </div>
+        </div>
+        <h2 class="text-2xl font-bold text-on-surface mb-2">Ask your knowledge base</h2>
+        <p class="text-on-surface-variant text-sm">Type or speak your question</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-obsidian-base via-obsidian-base/80 to-transparent">
+    <p id="mic-status" class="text-center text-xs font-mono text-cyber-mint uppercase tracking-widest mb-2 h-4"></p>
+    <div class="input-wrap max-w-4xl mx-auto glass-panel rounded-full p-2.5 flex items-center gap-2 shadow-[0_20px_40px_rgba(0,0,0,0.6)]">
+      <input id="question-input" class="flex-1 bg-transparent border-none text-on-surface focus:ring-0 text-base placeholder:text-on-surface-variant/50 px-4 h-12" placeholder="Type your question..." type="text"/>
+      <button id="mic-btn" class="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center hover:opacity-90 shadow-[0_0_20px_rgba(108,92,231,0.5)]" aria-label="Voice input">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mic</span>
+      </button>
+      <button id="send-btn" class="w-12 h-12 rounded-full bg-obsidian-elevated border border-glass-stroke text-on-surface flex items-center justify-center hover:bg-surface-container-high" aria-label="Send">
+        <span class="material-symbols-outlined">send</span>
+      </button>
+    </div>
+    <p class="text-center mt-3 text-[10px] font-mono text-on-surface-variant opacity-60 uppercase tracking-widest">Nexora can make mistakes. Verify important information.</p>
+  </div>
+</main>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

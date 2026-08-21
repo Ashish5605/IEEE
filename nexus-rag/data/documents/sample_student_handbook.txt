@@ -1,0 +1,16 @@
+Student Handbook — Attendance and Leave Policy (Sample)
+
+Section 1: Attendance Requirement
+Students must maintain a minimum attendance of 75% in each course to be eligible to sit for the semester examinations. Attendance is calculated based on the number of classes conducted versus the number of classes attended.
+
+Section 2: Attendance Shortfall
+Students whose attendance falls below 75% but is at or above 65% may apply for condonation through the Head of Department, subject to valid medical or personal grounds supported by documentation. Students below 65% attendance will not be permitted to write the semester examination and must repeat the course.
+
+Section 3: Leave Types
+There are two types of leave available to students: Medical Leave and On-Duty Leave. Medical Leave requires a certificate from a registered medical practitioner submitted within 3 working days of returning to college. On-Duty Leave is granted for participation in college-approved events such as symposiums, sports, and NSS activities, and must be applied for at least 3 days in advance through the faculty advisor.
+
+Section 4: Examination Rules
+Students must carry their college ID card to all examinations. Use of mobile phones or any electronic device in the examination hall is strictly prohibited and will be treated as a case of malpractice. Students arriving more than 30 minutes after the start of an examination will not be permitted to enter the hall.
+
+This is placeholder sample content for testing the Nexora pipeline end-to-end.
+Replace the files in data/documents/ with your official IEEE Round 2 knowledge base documents before your presentation.
