@@ -1,0 +1,33 @@
+# --- Secrets ---
+.env
+.env.local
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Virtualenvs ---
+.venv/
+venv/
+env/
+
+# --- Generated data ---
+# The vector store is derived: rebuilt from data/documents on startup.
+nexus-rag/vectorstore/
+# Per-chat uploads are temporary and user-specific.
+nexus-rag/data/uploads/
+# Persisted chat transcripts are local state, not source.
+nexus-rag/data/chat_history/
+
+# --- Agent tooling (installed locally, not project source) ---
+.agents/
+.claude/
+skills-lock.json
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -25,6 +25,12 @@ def clear_history(session_id: str):
     _sessions.pop(session_id, None)
 
 
+def last_question(session_id: str) -> str:
+    """Most recent user question, used to give follow-ups enough context to retrieve."""
+    history = get_history(session_id)
+    return history[-1]["question"] if history else ""
+
+
 def format_history_for_prompt(session_id: str) -> str:
     """Compact text block of recent turns, for the LLM to resolve pronouns/follow-ups."""
     history = get_history(session_id)

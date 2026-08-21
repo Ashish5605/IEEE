@@ -1,67 +1,86 @@
 """
 Indexing pipeline: documents -> chunks -> embeddings -> vector store.
-Everything here is scoped to a chat session_id — each chat has its own
-uploaded documents and its own slice of the vector store, so nothing
-leaks between chats and clearing/leaving a chat cleans up after itself.
+
+Two kinds of knowledge live in the index, separated by "scope":
+
+  * BASE_SCOPE  - the provided knowledge base in data/documents. Ships with the
+                  project, indexed once on startup, shared by every chat.
+  * session_id  - documents a user uploaded inside one chat, kept in
+                  data/uploads/<session_id>. Temporary: wiped when that chat is
+                  cleared, replaced, or navigated away from.
+
+A chat searches both of its scopes at once, so the provided documents are always
+answerable while one chat's uploads never leak into another's.
 """
 import os
+import shutil
+from typing import List
+
 from src import document_loader, chunker, vector_store
-from src.config import DOCS_DIR
+from src.config import BASE_DOCS_DIR, UPLOADS_DIR, BASE_SCOPE
 
 
-def session_docs_dir(session_id: str) -> str:
-    """Folder where this session's uploaded documents live."""
-    return os.path.join(DOCS_DIR, session_id)
+def scopes_for(session_id: str) -> List[str]:
+    """Scopes one chat is allowed to search: the shared base plus its own uploads."""
+    return [BASE_SCOPE, session_id]
 
 
-def build_index(session_id: str, force: bool = False) -> dict:
+def session_uploads_dir(session_id: str) -> str:
+    """Folder holding the documents uploaded inside this chat."""
+    return os.path.join(UPLOADS_DIR, session_id)
+
+
+# --- Base knowledge base (permanent, shared) ---------------------------------
+
+def ensure_base_index(force: bool = False) -> dict:
     """
-    Builds this session's index if it doesn't exist yet, or always rebuilds if force=True.
-    Returns a status dict for the API/UI.
+    Indexes data/documents under BASE_SCOPE. Runs on startup: if the base scope
+    already holds chunks it's a no-op, so restarting the server doesn't re-embed
+    every PDF. force=True rebuilds it from scratch.
     """
-    docs_dir = session_docs_dir(session_id)
-
-    if not force and vector_store.is_session_indexed(session_id):
+    if not force and vector_store.is_indexed([BASE_SCOPE]):
         return {
             "status": "already_indexed",
-            "chunks": vector_store.session_chunk_count(session_id),
-            "documents": document_loader.list_available_documents(docs_dir),
+            "chunks": vector_store.count_for_scopes([BASE_SCOPE]),
+            "documents": document_loader.list_available_documents(BASE_DOCS_DIR),
         }
 
-    documents = document_loader.load_documents(docs_dir)
+    documents = document_loader.load_documents(BASE_DOCS_DIR)
     if not documents:
         return {
             "status": "no_documents",
             "chunks": 0,
             "documents": [],
-            "message": "No supported documents found. Add .pdf, .txt, or .docx files and rebuild.",
+            "message": f"No supported documents found in {BASE_DOCS_DIR}. "
+                       f"Add .pdf, .txt, .md or .docx files and rebuild.",
         }
 
-    vector_store.delete_session(session_id)
+    vector_store.delete_scope(BASE_SCOPE)
     chunk_records = chunker.chunk_documents(documents)
-    vector_store.add_chunks(chunk_records, session_id=session_id)
+    vector_store.add_chunks(chunk_records, scope=BASE_SCOPE)
 
     return {
         "status": "indexed",
         "chunks": len(chunk_records),
-        "documents": document_loader.list_available_documents(docs_dir),
+        "documents": document_loader.list_available_documents(BASE_DOCS_DIR),
     }
 
 
-def index_single_document(session_id: str, filename: str) -> dict:
+# --- Per-chat uploads (temporary) --------------------------------------------
+
+def index_uploaded_document(session_id: str, filename: str) -> dict:
     """
-    Incrementally embeds and adds just one document to this session's existing
-    index, without wiping/rebuilding everything else. Used after a drag-and-drop
-    upload so the new file becomes searchable immediately.
+    Embeds one freshly uploaded file into this chat's scope, without rebuilding
+    anything else, so a drag-and-drop upload becomes searchable immediately.
     """
-    docs_dir = session_docs_dir(session_id)
+    docs_dir = session_uploads_dir(session_id)
     sections = document_loader.load_single_document(docs_dir, filename)
     if not sections:
         return {"status": "no_content", "chunks": 0,
                 "message": f"Couldn't extract any text from {filename}."}
 
     chunk_records = chunker.chunk_documents(sections)
-    vector_store.add_chunks(chunk_records, session_id=session_id)
+    vector_store.add_chunks(chunk_records, scope=session_id)
 
     return {
         "status": "indexed",
@@ -70,19 +89,34 @@ def index_single_document(session_id: str, filename: str) -> dict:
     }
 
 
-def clear_knowledge_base(session_id: str) -> dict:
+def rebuild_session_index(session_id: str) -> dict:
+    """Re-embeds every file this chat uploaded. The base scope is untouched."""
+    docs_dir = session_uploads_dir(session_id)
+    documents = document_loader.load_documents(docs_dir)
+
+    vector_store.delete_scope(session_id)
+    chunk_records = chunker.chunk_documents(documents) if documents else []
+    if chunk_records:
+        vector_store.add_chunks(chunk_records, scope=session_id)
+
+    return {
+        "status": "indexed",
+        "chunks": len(chunk_records),
+        "documents": document_loader.list_available_documents(docs_dir),
+    }
+
+
+def clear_session_uploads(session_id: str) -> dict:
     """
-    Deletes every document this chat session uploaded and wipes its slice of
-    the vector index. Uploads are temporary — scoped to one chat — so this
-    runs whenever that chat is cleared, replaced by a new one, or navigated
-    away from.
+    Deletes the files this chat uploaded and drops its slice of the index.
+    Guards against ever passing BASE_SCOPE through here — the provided knowledge
+    base must survive a chat being cleared.
     """
-    docs_dir = session_docs_dir(session_id)
+    if not session_id or session_id == BASE_SCOPE:
+        return {"status": "skipped", "files_removed": 0}
+
+    docs_dir = session_uploads_dir(session_id)
     removed = document_loader.clear_documents(docs_dir)
-    try:
-        if os.path.isdir(docs_dir):
-            os.rmdir(docs_dir)
-    except OSError:
-        pass
-    vector_store.delete_session(session_id)
+    shutil.rmtree(docs_dir, ignore_errors=True)
+    vector_store.delete_scope(session_id)
     return {"status": "cleared", "files_removed": removed}

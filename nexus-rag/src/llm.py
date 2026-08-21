@@ -1,9 +1,16 @@
 """
 LLM abstraction. Swap providers by changing LLM_PROVIDER in .env —
 no other file needs to change.
-Supported: gemini, groq, openai, ollama
+Supported: gemini, groq, xai (Grok), openai, ollama
+
+xai/openai share one implementation because xAI's API is OpenAI-compatible; the
+only difference is the base URL. LLM_BASE_URL can point either at any other
+OpenAI-compatible endpoint (OpenRouter, Together, a local vLLM server).
 """
-from src.config import LLM_PROVIDER, LLM_API_KEY, LLM_MODEL, OLLAMA_BASE_URL
+from src.config import (LLM_PROVIDER, LLM_API_KEY, LLM_MODEL, OLLAMA_BASE_URL,
+                        LLM_BASE_URL)
+
+XAI_BASE_URL = "https://api.x.ai/v1"
 
 
 class LLMError(Exception):
@@ -19,11 +26,16 @@ def generate(system_prompt: str, user_prompt: str) -> str:
             return _generate_groq(system_prompt, user_prompt)
         elif LLM_PROVIDER == "openai":
             return _generate_openai(system_prompt, user_prompt)
+        elif LLM_PROVIDER in ("xai", "grok"):
+            return _generate_openai(system_prompt, user_prompt,
+                                     base_url=LLM_BASE_URL or XAI_BASE_URL,
+                                     default_model="grok-2-latest",
+                                     label="xAI (Grok)")
         elif LLM_PROVIDER == "ollama":
             return _generate_ollama(system_prompt, user_prompt)
         else:
             raise LLMError(f"Unknown LLM_PROVIDER '{LLM_PROVIDER}'. "
-                            f"Use one of: gemini, groq, openai, ollama.")
+                            f"Use one of: gemini, groq, xai, openai, ollama.")
     except LLMError:
         raise
     except Exception as e:
@@ -56,13 +68,14 @@ def _generate_groq(system_prompt: str, user_prompt: str) -> str:
     return completion.choices[0].message.content.strip()
 
 
-def _generate_openai(system_prompt: str, user_prompt: str) -> str:
+def _generate_openai(system_prompt: str, user_prompt: str, base_url: str = None,
+                      default_model: str = "gpt-4o-mini", label: str = "OpenAI") -> str:
     if not LLM_API_KEY:
-        raise LLMError("LLM_API_KEY is not set for OpenAI.")
+        raise LLMError(f"LLM_API_KEY is not set for {label}.")
     from openai import OpenAI
-    client = OpenAI(api_key=LLM_API_KEY)
+    client = OpenAI(api_key=LLM_API_KEY, base_url=base_url or (LLM_BASE_URL or None))
     completion = client.chat.completions.create(
-        model=LLM_MODEL or "gpt-4o-mini",
+        model=LLM_MODEL or default_model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
