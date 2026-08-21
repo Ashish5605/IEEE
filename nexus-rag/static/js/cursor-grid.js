@@ -66,10 +66,21 @@ export class CursorGrid {
 
     const target = this.p.listenTarget || window;
     this.target = target;
-    this._onMove = (e) => { const [x, y] = this._toLocal(e); this._energize(x, y); this._wake(); };
+    // Listening on window keeps the canvas click-through, but the influence
+    // radius would otherwise reach across the container edge and light cells
+    // from a pointer that is outside the section entirely. Ignore those.
+    this._inside = (x, y) => x >= 0 && y >= 0 && x <= this.w && y <= this.h;
+
+    this._onMove = (e) => {
+      const [x, y] = this._toLocal(e);
+      if (!this._inside(x, y)) return;
+      this._energize(x, y);
+      this._wake();
+    };
     this._onDown = (e) => {
       if (!this.p.clickPulse) return;
       const [x, y] = this._toLocal(e);
+      if (!this._inside(x, y)) return;
       this.pulses.push({ x, y, t0: performance.now() });
       this._wake();
     };
