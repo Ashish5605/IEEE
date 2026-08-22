@@ -33,9 +33,9 @@ BASE_SCOPE = "__base__"
 UPLOADS_ENABLED = os.getenv("UPLOADS_ENABLED", "0") == "1"
 
 # --- LLM ---
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")  # gemini | groq | xai | openai | ollama
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")  # groq | gemini | xai | openai | ollama
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 # Optional override for any OpenAI-compatible endpoint (xAI, OpenRouter, Together,
 # a local vLLM server). Leave empty to use the provider's default.

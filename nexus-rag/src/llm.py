@@ -17,8 +17,27 @@ class LLMError(Exception):
     pass
 
 
+_KEY_PREFIXES = {"gsk_": "groq", "AIza": "gemini", "xai-": "xai", "sk-": "openai"}
+
+
+def _key_mismatch_hint() -> str:
+    """
+    The commonest setup mistake is a key from one provider with LLM_PROVIDER set
+    to another. Key prefixes identify the issuer, so say so plainly.
+    """
+    for prefix, provider in _KEY_PREFIXES.items():
+        if LLM_API_KEY.startswith(prefix) and provider != LLM_PROVIDER:
+            return (f" Your key starts with '{prefix}', which is a {provider} key, "
+                    f"but LLM_PROVIDER is '{LLM_PROVIDER}'. "
+                    f"Set LLM_PROVIDER={provider} in .env and restart.")
+    return ""
+
+
 def generate(system_prompt: str, user_prompt: str) -> str:
     """Route to the configured provider. Raises LLMError on failure."""
+    hint = _key_mismatch_hint()
+    if hint:
+        raise LLMError(f"LLM provider and API key do not match.{hint}")
     try:
         if LLM_PROVIDER == "gemini":
             return _generate_gemini(system_prompt, user_prompt)
@@ -44,8 +63,9 @@ def generate(system_prompt: str, user_prompt: str) -> str:
 
 def _generate_gemini(system_prompt: str, user_prompt: str) -> str:
     if not LLM_API_KEY:
-        raise LLMError("LLM_API_KEY is not set. Get a free key at https://aistudio.google.com/apikey "
-                        "and add it to your .env file.")
+        raise LLMError("LLM_API_KEY is not set for Gemini. Add a key to .env "
+                        "(https://aistudio.google.com/apikey), or set LLM_PROVIDER=groq "
+                        "if you have a Groq key.")
     import google.generativeai as genai
     genai.configure(api_key=LLM_API_KEY)
     model = genai.GenerativeModel(model_name=LLM_MODEL, system_instruction=system_prompt)
@@ -55,7 +75,8 @@ def _generate_gemini(system_prompt: str, user_prompt: str) -> str:
 
 def _generate_groq(system_prompt: str, user_prompt: str) -> str:
     if not LLM_API_KEY:
-        raise LLMError("LLM_API_KEY is not set for Groq.")
+        raise LLMError("LLM_API_KEY is not set for Groq. Add a key to .env "
+                        "(https://console.groq.com/keys).")
     from groq import Groq
     client = Groq(api_key=LLM_API_KEY)
     completion = client.chat.completions.create(

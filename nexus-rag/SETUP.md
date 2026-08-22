@@ -137,6 +137,8 @@ pytest tests/ -q          # expect: 25 passed
 | Symptom | Cause | Fix |
 |---|---|---|
 | `LLM_API_KEY is not set` | `.env` missing or unsaved | Check `.env` is in `nexus-rag/`, then restart — it is read once at startup |
+| Error mentions **Gemini** but you have a Groq key | `LLM_PROVIDER` doesn't match the key | Set `LLM_PROVIDER=groq` and `LLM_MODEL=openai/gpt-oss-120b`. A `gsk_` key is Groq; `AIza` is Gemini |
+| `401 Invalid API Key` | Key revoked or regenerated | Creating a new key in the Groq console **replaces** the old one. Generate a fresh key and paste the whole string |
 | `model_not_found` / 404 | Model not on that Groq account | List available models (step 5) and update `LLM_MODEL` |
 | Port 5000 in use (macOS) | AirPlay Receiver | `PORT=5001 python app.py` |
 | First query hangs ~30 s | Offline reachability checks | Prefix with `HF_HUB_OFFLINE=1` once the model is cached |
