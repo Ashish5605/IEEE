@@ -20,6 +20,8 @@ nexus-rag/vectorstore/
 nexus-rag/data/uploads/
 # Persisted chat transcripts are local state, not source.
 nexus-rag/data/chat_history/
+# Strike / ban records are local runtime state.
+nexus-rag/data/moderation.json
 
 # --- Agent tooling (installed locally, not project source) ---
 .agents/

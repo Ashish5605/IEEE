@@ -110,7 +110,21 @@
   /* ---- Shell ---- */
   .app-shell { display: grid; grid-template-columns: 268px minmax(0,1fr) 372px; height: calc(100vh - 52px); position: relative; z-index: 2; }
   .pane { position: relative; min-height: 0; display: flex; flex-direction: column; }
-  .pane--rail { border-right: 1px solid var(--hairline); overflow-y: auto; }
+  .pane--rail { border-right: 1px solid var(--hairline); overflow: hidden; }
+  /* Fill the rail instead of stopping at a fixed height partway down. */
+  .rail-conversations { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+  /* Per-row delete, revealed on hover so the list stays quiet at rest. */
+  .conv-row { position: relative; }
+  .conv-del {
+    opacity: 0; flex-shrink: 0; color: var(--dim); padding: 2px; border-radius: 5px;
+    display: inline-flex; transition: opacity var(--t) var(--ease), color var(--t) var(--ease);
+  }
+  .conv-row:hover .conv-del, .conv-del:focus-visible { opacity: 1; }
+  .conv-del:hover { color: var(--ink); background: rgba(255,255,255,.07); }
+  :root[data-theme="light"] .conv-del:hover { background: rgba(0,0,0,.07); }
+  .conv-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conv-time { flex-shrink: 0; }
   .pane--info { border-left: 1px solid var(--hairline); overflow-y: auto; }
   .app-shell.info-hidden { grid-template-columns: 268px minmax(0,1fr); }
   .app-shell.info-hidden .pane--info { display: none; }
@@ -297,14 +311,14 @@
 
   <!-- ============ LEFT RAIL ============ -->
   <aside class="pane pane--rail p-5">
-    <div class="mb-7">
+    <div class="rail-conversations">
       <div class="flex items-center justify-between mb-1">
         <span class="label" style="margin:0">Conversations</span>
         <button id="new-chat-btn" class="icon-btn" aria-label="New conversation" title="New conversation">
           <span class="material-symbols-outlined text-[17px]">add</span>
         </button>
       </div>
-      <div id="history-list" class="max-h-40 overflow-y-auto overflow-x-hidden"></div>
+      <div id="history-list" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"></div>
       <div class="flex items-center gap-1 mt-2">
         <button id="clear-chat-btn" class="icon-btn" aria-label="Clear conversation" title="Clear"><span class="material-symbols-outlined text-[16px]">delete_outline</span></button>
         <button id="rebuild-btn" class="icon-btn" aria-label="Rebuild knowledge base" title="Rebuild index"><span class="material-symbols-outlined text-[16px]">refresh</span></button>

@@ -6,9 +6,13 @@ Answers are returned in English. The fixed responses (greeting, nothing-found,
 corpus listing) live in src/language.py and are returned without an LLM call.
 """
 import os
+import re
 import unicodedata
-from src import retriever, llm, citations, memory, indexer, language, semantic_map, vector_store
+from src import (retriever, llm, citations, memory, indexer, language,
+                 semantic_map, vector_store, moderation)
 from src.config import BASE_DIR, TOP_K, RELEVANCE_THRESHOLD, SCOPE_FLOOR
+
+DEFAULT_LANG = "en"
 
 _PROMPT_PATH = os.path.join(BASE_DIR, "prompts", "rag_prompt.txt")
 with open(_PROMPT_PATH, "r", encoding="utf-8") as f:
@@ -80,12 +84,39 @@ def _is_corpus_question(question: str) -> bool:
     return any(pat in cleaned for pat in _CORPUS_QUESTIONS)
 
 
+def _topic_from_filename(name: str) -> str:
+    """
+    "NB-AL-03_Attendance_and_Leave_Policy.pdf" -> "Attendance and leave".
+
+    Derived from what is actually indexed rather than hard-coded, so the answer
+    stays true if the corpus changes.
+    """
+    stem = name.rsplit(".", 1)[0]
+    stem = re.sub(r"^[A-Z]{2}-[A-Z]{2}-\d+_", "", stem)          # drop the code
+    stem = stem.replace("_", " ")
+    # Only a TRAILING filing word goes — stripping every occurrence turned
+    # "Academic Regulations and Progression" into "Academic and Progression".
+    stem = re.sub(r"\s+(Policy|Regulations)$", "", stem.strip())
+    stem = re.sub(r"\s{2,}", " ", stem).strip(" -")
+    if not stem:
+        return name
+    return stem[:1].upper() + stem[1:].lower()
+
+
 def _corpus_answer(scopes, lang: str) -> str:
+    """
+    Answer "what can you help with?" the way a person would: name the subjects,
+    not the filenames. A list of PDF names tells a student nothing about what
+    they can ask.
+    """
     sources = vector_store.sources_in_scopes(scopes)
     if not sources:
         return language.corpus_empty(lang)
+
+    topics = sorted({_topic_from_filename(s) for s in sources})
     lines = [language.corpus_intro(lang), ""]
-    lines += [f"- {s}" for s in sources]
+    lines += [f"- {t}" for t in topics]
+    lines += ["", language.corpus_outro(lang)]
     return "\n".join(lines)
 
 
@@ -114,6 +145,24 @@ def answer_question(question: str, session_id: str, requested_language: str = "a
     question = (question or "").strip()
     if not question:
         return {"error": "Please enter a question."}
+
+    # A live ban short-circuits everything, before retrieval or any model call.
+    if moderation.is_banned(session_id):
+        return {
+            "answer": moderation.ban_message(moderation.ban_remaining(session_id)),
+            "language": DEFAULT_LANG, "grounded": False, "blocked": True,
+            "sources": [], "evidence": [], "retrieved_ids": [], "query_point": None,
+        }
+
+    if moderation.contains_abuse(question):
+        result = moderation.register_strike(session_id)
+        return {
+            "answer": moderation.warning_message(
+                result["strikes"], result["banned"], result["remaining"]),
+            "language": DEFAULT_LANG, "grounded": False,
+            "warned": True, "blocked": result["banned"], "strikes": result["strikes"],
+            "sources": [], "evidence": [], "retrieved_ids": [], "query_point": None,
+        }
 
     lang = language.resolve_language(requested_language, question)
 

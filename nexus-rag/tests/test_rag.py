@@ -101,9 +101,14 @@ def test_corpus_question_lists_documents_without_retrieval():
 
     result = answer_question("What do you know?", session_id="test-corpus")
     assert result["grounded"] is True
-    # The corpus is the eight official Northbridge policy documents.
-    assert "NB-AR-01" in result["answer"]
-    assert result["answer"].count("- NB-") == 8
+    answer = result["answer"]
+    # Subjects, not filenames — a list of PDF names tells a student nothing
+    # about what they can ask.
+    assert ".pdf" not in answer
+    assert "NB-" not in answer
+    assert "Attendance and leave" in answer
+    assert "Scholarship and financial assistance" in answer
+    assert answer.count("\n- ") == 8
 
 
 def test_corpus_question_detection_has_no_false_positives():

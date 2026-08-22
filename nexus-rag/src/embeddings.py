@@ -4,18 +4,25 @@ Uses sentence-transformers locally (free, offline after first download).
 Configurable via EMBEDDING_MODEL in .env — swap models without touching
 any other file.
 """
+import threading
 from typing import List
 from src.config import EMBEDDING_MODEL
 
 _model = None
+# The warm-up thread and the first request can arrive together; without a lock
+# both would load the model, doubling the wait they were meant to avoid.
+_model_lock = threading.Lock()
 
 
 def _get_model():
     global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        print(f"[embeddings] Loading embedding model: {EMBEDDING_MODEL} (first run downloads it)")
-        _model = SentenceTransformer(EMBEDDING_MODEL)
+    if _model is not None:
+        return _model
+    with _model_lock:
+        if _model is None:
+            from sentence_transformers import SentenceTransformer
+            print(f"[embeddings] Loading embedding model: {EMBEDDING_MODEL} (first run downloads it)")
+            _model = SentenceTransformer(EMBEDDING_MODEL)
     return _model
 
 

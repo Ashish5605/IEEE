@@ -11,6 +11,7 @@ History, just without the underlying files/index).
 """
 import os
 import uuid
+import threading
 import traceback
 from flask import Flask, request, jsonify, session, render_template
 
@@ -32,6 +33,25 @@ app.jinja_env.auto_reload = True
 _base_index_ready = False
 
 
+def _warm_embedding_model():
+    """
+    Load the sentence encoder in the background at startup.
+
+    It is imported lazily, so when the index already exists nothing touches it
+    until the first question — which then pays ~24s while the user waits. Doing
+    it here on a daemon thread keeps startup instant and makes the first query
+    as fast as the rest.
+    """
+    def _load():
+        try:
+            from src.embeddings import _get_model
+            _get_model()
+            print("[startup] embedding model ready")
+        except Exception:
+            traceback.print_exc()
+    threading.Thread(target=_load, daemon=True, name="warm-embeddings").start()
+
+
 def _ensure_base_index():
     """
     Indexes the provided knowledge base on first use. Memoized, and done lazily
@@ -48,6 +68,11 @@ def _ensure_base_index():
     except Exception:
         traceback.print_exc()
     _base_index_ready = True
+
+
+# Start loading the encoder the moment the process boots, not on first request:
+# otherwise the first question waits ~24s for a model nothing has touched yet.
+_warm_embedding_model()
 
 
 def _get_session_id() -> str:
@@ -224,6 +249,18 @@ def switch_to_session(session_id):
     but its old uploads are gone unless re-added."""
     session["session_id"] = session_id
     return jsonify({"messages": chat_history.load_session(session_id)})
+
+
+@app.route("/api/history/<session_id>", methods=["DELETE"])
+def delete_session(session_id):
+    """Remove one saved conversation: its transcript, memory and any uploads."""
+    chat_history.clear_session(session_id)
+    memory.clear_history(session_id)
+    indexer.clear_session_uploads(session_id)
+    # Deleting the conversation you are currently in leaves you in a fresh one.
+    if session.get("session_id") == session_id:
+        session["session_id"] = str(uuid.uuid4())
+    return jsonify({"status": "deleted", "session_id": session_id})
 
 
 @app.route("/api/upload", methods=["POST"])

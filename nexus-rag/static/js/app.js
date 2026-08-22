@@ -167,9 +167,18 @@ function escapeHtml(s) {
 }
 
 // ---------- Messages ----------
+function setGridActive(on) {
+  const grid = $("grid-bg");
+  if (!grid) return;
+  grid.hidden = !on;
+  if (window.__grid) on ? window.__grid._wake() : window.__grid.stop();
+}
+
 function hideEmptyState() {
   if (!emptyState || !emptyState.parentNode) return;
   emptyState.remove();
+  // A conversation has started: stop the ambient motion entirely.
+  setGridActive(false);
 }
 
 function addUserMessage(text) {
@@ -334,11 +343,9 @@ function showView(which) {
   // The lattice belongs to the chat surface only. Hiding the container also
   // stops it doing work: a zero-size container makes every pointer position
   // fall outside it, so nothing energises while another tab is open.
-  const grid = $("grid-bg");
-  if (grid) {
-    grid.hidden = which !== "chat";
-    if (window.__grid) which === "chat" ? window.__grid._wake() : window.__grid.stop();
-  }
+  // Only on the chat tab, and only while the empty state is still showing.
+  const onEmptyChat = which === "chat" && !!$("empty-state");
+  setGridActive(onEmptyChat);
 }
 showView("chat");
 
@@ -407,11 +414,28 @@ async function loadHistory() {
       return;
     }
     data.sessions.forEach((s) => {
-      const row = document.createElement("button");
+      const row = document.createElement("div");
       row.className = "conv-row";
-      row.innerHTML = `<span class="truncate">${escapeHtml(s.title || "New conversation")}</span>` +
-                      `<span class="mono shrink-0" style="color:var(--dim)">${relTime(s.last_updated)}</span>`;
+      row.innerHTML =
+        `<span class="conv-title">${escapeHtml(s.title || "New conversation")}</span>` +
+        `<span class="conv-time mono" style="color:var(--dim)">${relTime(s.last_updated)}</span>` +
+        `<button class="conv-del" aria-label="Delete this conversation" title="Delete">` +
+        `<span class="material-symbols-outlined" style="font-size:15px">close</span></button>`;
       row.title = `${s.message_count} messages`;
+
+      row.querySelector(".conv-del").addEventListener("click", async (e) => {
+        e.stopPropagation();                       // don't also open the conversation
+        await fetch(`/api/history/${s.session_id}`, { method: "DELETE" });
+        await loadHistory();
+        // If we just deleted the open conversation, the server moved us to a
+        // fresh one — clear the thread so the UI matches.
+        if (row.classList.contains("active")) {
+          chatInner.innerHTML = "";
+          if (emptyState) chatInner.appendChild(emptyState);
+          renderEvidence([]); clearPlot(); setGridActive(true);
+        }
+      });
+
       row.addEventListener("click", async () => {
         const t = await (await fetch(`/api/history/${s.session_id}`, { method: "POST" })).json();
         chatInner.innerHTML = "";

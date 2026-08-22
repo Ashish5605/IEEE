@@ -91,6 +91,10 @@
   #beams-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
   #beams-bg canvas { display: block; width: 100%; height: 100%; }
   @media (prefers-reduced-motion: reduce) { #beams-bg { display: none; } }
+  /* Beams are dark geometry lit by a white source — they read as luminous on a
+     black ground and as heavy grey streaks on a white one, which buried the
+     hero copy. The effect belongs to the dark theme only. */
+  :root[data-theme="light"] #beams-bg { display: none; }
 
   /* ---- TargetCursor ---- */
   .target-cursor-wrapper {
@@ -127,9 +131,15 @@
   .cta-ghost { display: inline-flex; align-items: center; gap: 8px; color: var(--dim); font-size: 14px; padding: 13px 18px; text-decoration: none; transition: color 140ms var(--ease); }
   .cta-ghost:hover { color: var(--ink); }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--hairline); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; margin: 0 0 88px; }
+  .grid { counter-reset: claim; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--hairline); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; margin: 0 0 88px; }
   .cell { background: color-mix(in srgb, var(--panel) 66%, transparent); padding: 26px 22px; }
+  .cell { counter-increment: claim; }
   .cell h3 { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+  .cell h3::before {
+    content: "0" counter(claim);
+    display: block; font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: .12em; color: var(--dim); margin-bottom: 10px;
+  }
   .cell p { font-size: 13px; line-height: 1.6; color: var(--dim); margin: 0; }
   @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .hero { padding: 72px 0 56px; } }
 
@@ -208,6 +218,13 @@
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.NexoraTheme.mount(document.getElementById('theme-toggle'));
+
+  // Hiding the canvas is not enough: a three.js scene left running behind
+  // display:none still burns frames. Follow the theme.
+  window.addEventListener('themechange', (e) => {
+    if (!window.__beams) return;
+    e.detail.mode === 'light' ? window.__beams.stop() : window.__beams.start();
+  });
 
   // Smooth scroll. Disabled under reduced-motion, where hijacking the scroll
   // would be exactly the wrong thing to do.

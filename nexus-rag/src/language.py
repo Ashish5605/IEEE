@@ -18,7 +18,14 @@ GREETING_RESPONSES = {
 }
 
 CORPUS_INTRO = {
-    "en": "I can answer questions about these documents:",
+    "en": ("I'm Nexora, the Northbridge policy assistant. I can answer questions "
+           "about the institute's official regulations — things like:"),
+}
+
+CORPUS_OUTRO = {
+    "en": ("Ask me anything specific and I'll quote the exact policy, with the "
+           "document and page it came from. For example: *What is the minimum "
+           "attendance requirement?*"),
 }
 
 CORPUS_EMPTY = {
@@ -62,6 +69,10 @@ def greeting_response(code: str = DEFAULT_LANGUAGE) -> str:
 
 def corpus_intro(code: str = DEFAULT_LANGUAGE) -> str:
     return CORPUS_INTRO[DEFAULT_LANGUAGE]
+
+
+def corpus_outro(code: str = DEFAULT_LANGUAGE) -> str:
+    return CORPUS_OUTRO[DEFAULT_LANGUAGE]
 
 
 def corpus_empty(code: str = DEFAULT_LANGUAGE) -> str:
