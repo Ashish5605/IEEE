@@ -28,6 +28,24 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "nexus-rag-dev-secret-change-in-p
 # not appear until a restart. This app is run directly for demos, so pick up
 # template edits on reload instead.
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+
+@app.template_global()
+def asset(filename: str) -> str:
+    """
+    Static URL stamped with the file's mtime.
+
+    Browsers hold on to JS aggressively; during development that means editing a
+    module and still running the old one. The stamp changes when the file does,
+    so a reload always fetches the current version.
+    """
+    path = os.path.join(app.static_folder, filename)
+    try:
+        stamp = int(os.path.getmtime(path))
+    except OSError:
+        stamp = 0
+    return f"/static/{filename}?v={stamp}"
+
 app.jinja_env.auto_reload = True
 
 _base_index_ready = False

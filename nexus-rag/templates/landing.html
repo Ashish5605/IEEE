@@ -224,10 +224,10 @@
     </footer>
   </div>
 
-<script src="/static/js/theme.js"></script>
+<script src="{{ asset('js/theme.js') }}"></script>
 <script type="module">
   // No external imports here on purpose: this must run on first paint.
-  import { SplitText } from '/static/js/split-text.js';
+  import { SplitText } from '{{ asset('js/split-text.js') }}';
 
   const reveal = (el) => el && el.classList.add('revealed');
   const line = document.getElementById('hero-line');
@@ -252,10 +252,10 @@
   // hero reveal, so it all waits until the browser is idle after first paint.
   const startHeavy = async () => {
     const [{ TiltedCard }, { Beams }, { TargetCursor }, { GradualBlur }, Lenis] = await Promise.all([
-      import('/static/js/tilted-card.js'),
-      import('/static/js/beams.js'),
-      import('/static/js/target-cursor.js'),
-      import('/static/js/gradual-blur.js'),
+      import('{{ asset('js/tilted-card.js') }}'),
+      import('{{ asset('js/beams.js') }}'),
+      import('{{ asset('js/target-cursor.js') }}'),
+      import('{{ asset('js/gradual-blur.js') }}'),
       import('https://esm.sh/lenis@1.1.18').then(m => m.default),
     ]);
 

@@ -461,11 +461,11 @@
   </aside>
 </div>
 
-<script src="/static/js/theme.js"></script>
-<script src="/static/js/app.js"></script>
+<script src="{{ asset('js/theme.js') }}"></script>
+<script src="{{ asset('js/app.js') }}"></script>
 <script type="module">
-  import { VectorSky } from '/static/js/vector-sky.js';
-  import { CursorGrid } from '/static/js/cursor-grid.js';
+  import { VectorSky } from '{{ asset('js/vector-sky.js') }}';
+  import { CursorGrid } from '{{ asset('js/cursor-grid.js') }}';
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const opts = { star: css('--dim'), retrieval: css('--retrieval'), signal: css('--signal') };
   // Single sky: the semantic map in the information panel.

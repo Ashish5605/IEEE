@@ -29,6 +29,9 @@ export class VectorSky {
     this.dim = opts.dim || 1;    // overall opacity multiplier
 
     this.reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Quiet mode: no drift, no twinkle, and the loop stops once the drawing
+    // has settled. Used once a conversation starts.
+    this.quiet = false;
 
     this._resize = this._resize.bind(this);
     this._frame = this._frame.bind(this);
@@ -159,7 +162,7 @@ export class VectorSky {
     ctx.clearRect(0, 0, w, h);
     if (!this.points.length) return;
 
-    const drift = this.reduce ? 0 : 1;
+    const drift = (this.reduce || this.quiet) ? 0 : 1;
     const glob = this.dim;
 
     // Constellation lines first, so stars sit on top of them.
@@ -241,6 +244,13 @@ export class VectorSky {
 
   _frame(now) {
     if (this.stopped) return;
+    // In quiet mode the only thing worth animating is a constellation forming.
+    // Once it has settled, draw one last frame and stop asking for more.
+    if (this.quiet && !this.forming) {
+      this._draw(now);
+      this.raf = 0;
+      return;
+    }
     this.raf = requestAnimationFrame(this._frame);
     if (this.forming) {
       // rAF hands us the frame-start timestamp, which can predate the
@@ -261,6 +271,11 @@ export class VectorSky {
 
   stop() {
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
+  }
+
+  setQuiet(quiet) {
+    this.quiet = !!quiet;
+    this.start();          // one more frame to settle into the new state
   }
 
   destroy() {

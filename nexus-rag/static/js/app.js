@@ -176,11 +176,18 @@ function escapeHtml(s) {
 }
 
 // ---------- Messages ----------
+/**
+ * Ambient motion belongs to the idle screen. Once a conversation starts the
+ * lattice stops and the map freezes — the constellation still animates when an
+ * answer lands, but nothing drifts behind text you are reading.
+ */
 function setGridActive(on) {
   const grid = $("grid-bg");
-  if (!grid) return;
-  grid.hidden = !on;
-  if (window.__grid) on ? window.__grid._wake() : window.__grid.stop();
+  if (grid) {
+    grid.hidden = !on;
+    if (window.__grid) on ? window.__grid._wake() : window.__grid.stop();
+  }
+  skies().forEach((sky) => sky.setQuiet && sky.setQuiet(!on));
 }
 
 function hideEmptyState() {
