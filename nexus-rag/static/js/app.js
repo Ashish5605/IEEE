@@ -43,6 +43,12 @@ let activeSpeechBtn = null;
 
 const VOICE_LANG_MAP = { en: "en-IN" };
 
+/** "openai/gpt-oss-120b" -> "gpt-oss-120b" — drop the vendor path prefix. */
+function shortModel(model) {
+  if (!model) return "";
+  return String(model).split("/").pop();
+}
+
 function setStatus(text, loading) {
   const dot = $("status-dot"), label = $("status-text");
   if (!dot || !label) return;
@@ -72,7 +78,9 @@ async function loadStatus() {
     if (data.indexed) {
       badge.textContent = `${data.chunk_count} chunks`;
       badge.className = "pill pill--on";
-      setStatus("ready");
+      // Name the model rather than saying "ready" — it is the more useful fact,
+      // and it makes the provider obvious during a demo.
+      setStatus(shortModel(data.model) || "ready");
     } else {
       badge.textContent = "not indexed";
       badge.className = "pill pill--off";
@@ -83,6 +91,7 @@ async function loadStatus() {
     data.documents.forEach((doc) => sourceSelector.appendChild(sourceRow(doc)));
     applyScopeMode();
 
+    window.__model = shortModel(data.model);
     topkSlider.value = data.top_k;      topkVal.textContent = data.top_k;
     thresholdSlider.value = data.relevance_threshold;
     thresholdVal.textContent = data.relevance_threshold;
@@ -241,7 +250,7 @@ function scrollDown() {
 function setResolving(on) {
   sendBtn.disabled = on;
   sendBtn.innerHTML = on ? '<span class="orbit"></span>' : "Send";
-  setStatus(on ? "retrieving" : "ready", on);
+  setStatus(on ? "retrieving" : (window.__model || "ready"), on);
 }
 
 async function ask(question) {
@@ -366,7 +375,7 @@ linkSliders("topk-slider", "topk-val", "topk-slider-2", "topk-val-2");
 linkSliders("threshold-slider", "threshold-val", "threshold-slider-2", "threshold-val-2");
 
 // ---------- Rebuild / clear / new ----------
-rebuildBtn.addEventListener("click", async () => {
+if (rebuildBtn) rebuildBtn.addEventListener("click", async () => {
   rebuildBtn.disabled = true;
   showBanner("info", "Rebuilding knowledge base…");
   try {
@@ -378,7 +387,7 @@ rebuildBtn.addEventListener("click", async () => {
   await loadStatus(); await loadCorpusPoints();
 });
 
-clearChatBtn.addEventListener("click", async () => {
+if (clearChatBtn) clearChatBtn.addEventListener("click", async () => {
   window.speechSynthesis && window.speechSynthesis.cancel();
   await fetch("/api/clear_chat", { method: "POST" });
   chatInner.innerHTML = "";

@@ -18,7 +18,7 @@ from flask import Flask, request, jsonify, session, render_template
 from src import indexer, document_loader, memory, vector_store, chat_history, semantic_map
 from src.rag_pipeline import answer_question
 from src.config import (TOP_K, RELEVANCE_THRESHOLD, SUPPORTED_LANGUAGES,
-                        UPLOADS_ENABLED)
+                        UPLOADS_ENABLED, LLM_PROVIDER, LLM_MODEL)
 
 MAX_UPLOAD_MB = 20
 
@@ -120,6 +120,8 @@ def status():
         "top_k": TOP_K,
         "relevance_threshold": RELEVANCE_THRESHOLD,
         "languages": SUPPORTED_LANGUAGES,
+        "provider": LLM_PROVIDER,
+        "model": LLM_MODEL,
     })
 
 

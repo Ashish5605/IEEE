@@ -115,6 +115,13 @@
   .corner-br { transform: translate(50%, 50%);    border-left: none;  border-top: none; }
   .corner-bl { transform: translate(-150%, 50%);  border-right: none; border-top: none; }
 
+  /* The reveal's start state belongs in CSS, not in JS that waits on a CDN.
+     Without this the hero paints, then vanishes when the module finally runs.
+     .revealed is set by SplitText, and by a timeout if the module never loads. */
+  #hero-line, #hero-lede { opacity: 0; transition: opacity 200ms ease-out; }
+  #hero-line.revealed, #hero-lede.revealed { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #hero-line, #hero-lede { opacity: 1; } }
+
   .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 28px; }
   header.site { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
   header { height: 64px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--hairline); }
@@ -155,6 +162,16 @@
   a { color: inherit; }
   :focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 4px; }
 </style>
+<script>
+  // If the module fails or is very slow, show the hero anyway rather than
+  // leaving the page looking empty.
+  setTimeout(function () {
+    ['hero-line', 'hero-lede'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('revealed');
+    });
+  }, 1200);
+</script>
 </head>
 <body>
   <div id="beams-bg" aria-hidden="true"></div>
@@ -167,7 +184,7 @@
     <section class="hero">
       <p class="eyebrow">Reliable RAG assistant</p>
       <h1 id="hero-line">Ask the policy. Get the source.</h1>
-      <p class="lede" id="hero-lede">Every answer is retrieved from Northbridge's eight official policy documents and shown with the passage it came from. If the documents don't cover it, Nexora says so instead of guessing.</p>
+      <p class="lede" id="hero-lede">Answers come straight from Northbridge's eight policies, receipts attached. No coverage, no guessing &mdash; Nexora just says so.</p>
       <a class="cta cursor-target" href="/app">Open the console →</a>
     </section>
 
@@ -209,12 +226,42 @@
 
 <script src="/static/js/theme.js"></script>
 <script type="module">
+  // No external imports here on purpose: this must run on first paint.
   import { SplitText } from '/static/js/split-text.js';
-  import { TiltedCard } from '/static/js/tilted-card.js';
-  import { Beams } from '/static/js/beams.js';
-  import { TargetCursor } from '/static/js/target-cursor.js';
-  import { GradualBlur } from '/static/js/gradual-blur.js';
-  import Lenis from 'https://esm.sh/lenis@1.1.18';
+
+  const reveal = (el) => el && el.classList.add('revealed');
+  const line = document.getElementById('hero-line');
+  const lede = document.getElementById('hero-lede');
+
+  reveal(line); reveal(lede);
+  new SplitText(line, {
+    delay: 55, duration: 1.6, ease: 'expo.out', splitType: 'chars',
+    from: { opacity: 0, y: 26 }, to: { opacity: 1, y: 0 },
+    threshold: 0.1, rootMargin: '-40px', textAlign: 'center',
+  });
+  new SplitText(lede, {
+    delay: 26, duration: 1.2, ease: 'expo.out', splitType: 'words',
+    from: { opacity: 0, y: 10 }, to: { opacity: 1, y: 0 },
+    threshold: 0.1, rootMargin: '-20px', textAlign: 'center',
+  });
+</script>
+
+<script type="module">
+  // Everything below is decorative and pulls large modules (three.js, gsap,
+  // lenis) from a CDN. Parsing them blocks the main thread, which delayed the
+  // hero reveal, so it all waits until the browser is idle after first paint.
+  const startHeavy = async () => {
+    const [{ TiltedCard }, { Beams }, { TargetCursor }, { GradualBlur }, Lenis] = await Promise.all([
+      import('/static/js/tilted-card.js'),
+      import('/static/js/beams.js'),
+      import('/static/js/target-cursor.js'),
+      import('/static/js/gradual-blur.js'),
+      import('https://esm.sh/lenis@1.1.18').then(m => m.default),
+    ]);
+
+
+
+
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.NexoraTheme.mount(document.getElementById('theme-toggle'));
@@ -314,29 +361,10 @@
         <span class="go">8 documents →</span>
       </div>`,
   });
+  };
 
-  new SplitText(document.getElementById('hero-line'), {
-    delay: 55,            // wider gap between characters
-    duration: 1.6,        // each character settles slowly
-    ease: 'expo.out',     // long decelerating tail rather than a quick stop
-    splitType: 'chars',
-    from: { opacity: 0, y: 26 },   // shorter travel reads calmer at this duration
-    to: { opacity: 1, y: 0 },
-    threshold: 0.1,
-    rootMargin: '-40px',
-    textAlign: 'center',
-  });
-  new SplitText(document.getElementById('hero-lede'), {
-    delay: 26,
-    duration: 1.2,
-    ease: 'expo.out',
-    splitType: 'words',
-    from: { opacity: 0, y: 10 },
-    to: { opacity: 1, y: 0 },
-    threshold: 0.1,
-    rootMargin: '-20px',
-    textAlign: 'center',
-  });
+  if ('requestIdleCallback' in window) requestIdleCallback(startHeavy, { timeout: 1500 });
+  else setTimeout(startHeavy, 200);
 </script>
 </body>
 </html>

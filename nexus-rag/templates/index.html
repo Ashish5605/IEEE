@@ -114,6 +114,19 @@
   /* Fill the rail instead of stopping at a fixed height partway down. */
   .rail-conversations { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
+  /* Primary action in the rail: one clear control instead of two icons. */
+  .btn-newchat {
+    flex-shrink: 0; width: 100%;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 18px; border-radius: 999px;
+    background: #FFFFFF; color: #000000; border: none;
+    font-size: 13px; font-weight: 600; font-family: var(--font-body);
+    transition: opacity var(--t) var(--ease), transform var(--t) var(--ease);
+  }
+  .btn-newchat:hover { opacity: .88; }
+  .btn-newchat:active { transform: scale(.985); }
+  :root[data-theme="light"] .btn-newchat { background: #111111; color: #FFFFFF; }
+
   /* Per-row delete, revealed on hover so the list stays quiet at rest. */
   .conv-row { position: relative; }
   .conv-del {
@@ -312,17 +325,12 @@
   <!-- ============ LEFT RAIL ============ -->
   <aside class="pane pane--rail p-5">
     <div class="rail-conversations">
-      <div class="flex items-center justify-between mb-1">
-        <span class="label" style="margin:0">Conversations</span>
-        <button id="new-chat-btn" class="icon-btn" aria-label="New conversation" title="New conversation">
-          <span class="material-symbols-outlined text-[17px]">add</span>
-        </button>
-      </div>
+      <p class="label">Conversations</p>
       <div id="history-list" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"></div>
-      <div class="flex items-center gap-1 mt-2">
-        <button id="clear-chat-btn" class="icon-btn" aria-label="Clear conversation" title="Clear"><span class="material-symbols-outlined text-[16px]">delete_outline</span></button>
-        <button id="rebuild-btn" class="icon-btn" aria-label="Rebuild knowledge base" title="Rebuild index"><span class="material-symbols-outlined text-[16px]">refresh</span></button>
-      </div>
+      <button id="new-chat-btn" class="btn-newchat mt-3">
+        <span class="material-symbols-outlined" style="font-size:17px">add</span>
+        <span>New chat</span>
+      </button>
     </div>
 
   </aside>

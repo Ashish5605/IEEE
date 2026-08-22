@@ -9,7 +9,7 @@ import os
 import re
 import unicodedata
 from src import (retriever, llm, citations, memory, indexer, language,
-                 semantic_map, vector_store, moderation)
+                 semantic_map, vector_store, moderation, translit)
 from src.config import BASE_DIR, TOP_K, RELEVANCE_THRESHOLD, SCOPE_FLOOR
 
 DEFAULT_LANG = "en"
@@ -181,6 +181,9 @@ def answer_question(question: str, session_id: str, requested_language: str = "a
         }
 
     scopes = indexer.scopes_for(session_id)
+    # Romanised Tamil/Hindi terms get their English equivalents appended for
+    # retrieval only; the user's question is untouched everywhere else.
+    search_text = translit.expand_query(question)
 
     # 0b. Questions about the knowledge base itself are answered from the index,
     # not by searching it. No LLM call needed.
@@ -194,7 +197,7 @@ def answer_question(question: str, session_id: str, requested_language: str = "a
 
     # 1. Retrieve across the shared base knowledge base + this chat's uploads
     result = retriever.retrieve(
-        question,
+        search_text,
         scopes=scopes,
         top_k=top_k,
         threshold=threshold,
@@ -211,7 +214,7 @@ def answer_question(question: str, session_id: str, requested_language: str = "a
         prior = memory.last_question(session_id)
         if prior:
             contextual = retriever.retrieve(
-                f"{prior} {question}", scopes=scopes, top_k=top_k,
+                f"{prior} {search_text}", scopes=scopes, top_k=top_k,
                 threshold=threshold, source_filter=source_filter,
             )
             if contextual["grounded"]:
